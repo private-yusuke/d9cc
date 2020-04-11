@@ -140,38 +140,155 @@ Node* expr(Token[] tokens)
     return lhs;
 }
 
-// Code Generator
+// Intermediate representation
 
-string[] regs = ["rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15"];
+enum IRType
+{
+    IMM,
+    MOV,
+    RETURN,
+    KILL,
+    NOP,
+    ADD = '+',
+    SUB = '-'
+}
 
-string gen(Node* node, ref size_t cur)
+struct IR
+{
+    IRType type;
+    size_t lhs;
+    size_t rhs;
+}
+
+IR new_ir(IRType type, size_t lhs, size_t rhs)
+{
+    IR ir;
+    ir.type = type;
+    ir.lhs = lhs;
+    ir.rhs = rhs;
+    return ir;
+}
+
+size_t gen_ir_sub(ref IR[] ins, ref size_t regno, Node* node)
 {
     if (node.type == NodeType.NUM)
     {
-        if (cur + 1 > regs.length)
-        {
-            stderr.writeln("register exhausted");
-            throw new QuitException(-1);
-        }
-        string reg = regs[cur++];
-        writefln("  mov %s, %d", reg, node.val);
-        return reg;
+        size_t r = regno++;
+        ins ~= new_ir(IRType.IMM, r, node.val);
+        return r;
     }
 
-    string dst = gen(node.lhs, cur);
-    string src = gen(node.rhs, cur);
+    assert(node.type == '+' || node.type == '-');
 
-    switch (node.type)
+    size_t lhs = gen_ir_sub(ins, regno, node.lhs);
+    size_t rhs = gen_ir_sub(ins, regno, node.rhs);
+
+    ins ~= new_ir(cast(IRType) node.type, lhs, rhs);
+    ins ~= new_ir(IRType.KILL, rhs, 0);
+    return lhs;
+}
+
+IR[] gen_ir(Node* node)
+{
+    IR[] res;
+    size_t regno;
+
+    size_t r = gen_ir_sub(res, regno, node);
+    res ~= new_ir(IRType.RETURN, r, 0);
+    return res;
+}
+
+static immutable string[] regs = [
+    "rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15"
+];
+
+size_t alloc(ref size_t[size_t] reg_map, ref bool[] used, size_t ir_reg)
+{
+    if (ir_reg in reg_map)
     {
-    case NodeType.ADD:
-        writefln("  add %s, %s", dst, src);
-        return dst;
-    case NodeType.SUB:
-        writefln("  sub %s, %s", dst, src);
-        return dst;
-    default:
-        stderr.writeln("unknown operator");
-        throw new QuitException(-1);
+        size_t r = reg_map[ir_reg];
+        assert(used[r]);
+        return r;
+    }
+
+    foreach (i; 0 .. regs.length)
+    {
+        if (used[i])
+            continue;
+        used[i] = true;
+        reg_map[ir_reg] = i;
+        return i;
+    }
+    stderr.writeln("register exhausted");
+    throw new QuitException(-1);
+}
+
+void kill(ref bool[] used, size_t r)
+{
+    assert(used[r]);
+    used[r] = false;
+}
+
+void alloc_regs(ref IR[] ins)
+{
+    size_t[size_t] reg_map;
+    bool[] used = new bool[](regs.length);
+
+    foreach (ref ir; ins)
+    {
+        switch (ir.type)
+        {
+        case IRType.IMM:
+            ir.lhs = alloc(reg_map, used, ir.lhs);
+            break;
+        case IRType.MOV:
+        case IRType.ADD:
+        case IRType.SUB:
+            ir.lhs = alloc(reg_map, used, ir.lhs);
+            ir.rhs = alloc(reg_map, used, ir.rhs);
+            break;
+        case IRType.RETURN:
+            kill(used, reg_map[ir.lhs]);
+            break;
+        case IRType.KILL:
+            kill(used, reg_map[ir.lhs]);
+            ir.type = IRType.NOP;
+            break;
+        default:
+            assert(0, "unknown operator");
+        }
+    }
+}
+
+// Code generator
+
+void gen_x86(IR[] ins)
+{
+    foreach (ir; ins)
+    {
+        switch (ir.type)
+        {
+        case IRType.IMM:
+            writefln("  mov %s, %d", regs[ir.lhs], ir.rhs);
+            break;
+        case IRType.MOV:
+            writefln("  mov %s, %s", regs[ir.lhs], regs[ir.rhs]);
+            break;
+        case IRType.RETURN:
+            writefln("  mov rax, %s", regs[ir.lhs]);
+            writeln("  ret");
+            break;
+        case IRType.ADD:
+            writefln("  add %s, %s", regs[ir.lhs], regs[ir.rhs]);
+            break;
+        case IRType.SUB:
+            writefln("  sub %s, %s", regs[ir.lhs], regs[ir.rhs]);
+            break;
+        case IRType.NOP:
+            break;
+        default:
+            assert(0, "unknown operator");
+        }
     }
 }
 
@@ -185,16 +302,17 @@ int main(string[] args)
 
     try
     {
-        size_t cur;
-        auto tokens = tokenize(args[1]);
+        Token[] tokens = tokenize(args[1]);
         Node* node = expr(tokens);
+
+        IR[] ins = gen_ir(node);
+        alloc_regs(ins);
+
         writeln(".intel_syntax noprefix");
         writeln(".global main");
         writeln("main:");
 
-        // generate code while descending the parse tree.
-        writefln("  mov rax, %s", gen(node, cur));
-        writeln("  ret");
+        gen_x86(ins);
     }
     catch (QuitException e)
         return e.return_code;
