@@ -8,6 +8,7 @@ public:
 static immutable string[] regs = [
     "rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15"
 ];
+
 void alloc_regs(ref IR[] ins)
 {
     size_t[size_t] reg_map;

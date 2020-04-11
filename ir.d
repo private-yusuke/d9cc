@@ -31,12 +31,14 @@ IR[] gen_ir(Node* node)
 {
     assert(node.type == NodeType.COMP_STMT);
     size_t regno;
-    return gen_stmt(regno, node);
+    return gen_stmt(node);
 }
 
 private:
 
-size_t gen_expr(ref IR[] ins, ref size_t regno, Node* node)
+size_t regno;
+
+size_t gen_expr(ref IR[] ins, Node* node)
 {
     if (node.type == NodeType.NUM)
     {
@@ -47,20 +49,20 @@ size_t gen_expr(ref IR[] ins, ref size_t regno, Node* node)
 
     assert("+-*/".any!(v => cast(IRType) v == cast(IRType) node.type));
 
-    size_t lhs = gen_expr(ins, regno, node.lhs);
-    size_t rhs = gen_expr(ins, regno, node.rhs);
+    size_t lhs = gen_expr(ins, node.lhs);
+    size_t rhs = gen_expr(ins, node.rhs);
 
     ins ~= IR(cast(IRType) node.type, lhs, rhs);
     ins ~= IR(IRType.KILL, rhs, 0);
     return lhs;
 }
 
-IR[] gen_stmt(ref size_t regno, Node* node)
+IR[] gen_stmt(Node* node)
 {
     IR[] res;
     if (node.type == NodeType.RETURN)
     {
-        size_t r = gen_expr(res, regno, node.expr);
+        size_t r = gen_expr(res, node.expr);
         res ~= IR(IRType.RETURN, r, 0);
         res ~= IR(IRType.KILL, r, 0);
         return res;
@@ -68,7 +70,7 @@ IR[] gen_stmt(ref size_t regno, Node* node)
 
     if (node.type == NodeType.EXPR_STMT)
     {
-        size_t r = gen_expr(res, regno, node.expr);
+        size_t r = gen_expr(res, node.expr);
         res ~= IR(IRType.KILL, r, 0);
         return res;
     }
@@ -77,7 +79,7 @@ IR[] gen_stmt(ref size_t regno, Node* node)
     {
         foreach (stmt; node.stmts)
         {
-            res ~= gen_stmt(regno, &stmt);
+            res ~= gen_stmt(&stmt);
         }
         return res;
     }

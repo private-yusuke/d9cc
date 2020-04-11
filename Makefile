@@ -1,5 +1,4 @@
 SRCS=$(wildcard *.d)
-
 d9cc: $(SRCS)
 	dmd -of=d9cc $(SRCS)
 

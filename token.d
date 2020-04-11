@@ -16,6 +16,8 @@ enum TokenType
     NUM, // Number literal
     ADD = '+',
     SUB = '-',
+    MUL = '*',
+    DIV = '/',
     RETURN, // "return"
     SEMICOLONE = ';',
     EOF // End marker
