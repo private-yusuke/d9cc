@@ -29,7 +29,7 @@ void alloc_regs(ref IR[] ins)
             ir.rhs = alloc(reg_map, used, ir.rhs);
             break;
         case IRType.RETURN:
-            kill(used, reg_map[ir.lhs]);
+            ir.lhs = alloc(reg_map, used, ir.lhs);
             break;
         case IRType.KILL:
             kill(used, reg_map[ir.lhs]);
@@ -60,8 +60,8 @@ size_t alloc(ref size_t[size_t] reg_map, ref bool[] used, size_t ir_reg)
         reg_map[ir_reg] = i;
         return i;
     }
-    stderr.writeln("register exhausted");
-    throw new QuitException(-1);
+    error("register exhausted");
+    assert(0);
 }
 
 void kill(ref bool[] used, size_t r)

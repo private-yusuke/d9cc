@@ -1,7 +1,7 @@
 module ir;
 
 import std.algorithm : any;
-import parse;
+import parse, util;
 
 // Intermediate representation
 
@@ -29,40 +29,59 @@ struct IR
 
 IR[] gen_ir(Node* node)
 {
-    IR[] res;
+    assert(node.type == NodeType.COMP_STMT);
     size_t regno;
-
-    size_t r = gen_ir_sub(res, regno, node);
-    res ~= new_ir(IRType.RETURN, r, 0);
-    return res;
+    return gen_stmt(regno, node);
 }
 
 private:
 
-IR new_ir(IRType type, size_t lhs, size_t rhs)
-{
-    IR ir;
-    ir.type = type;
-    ir.lhs = lhs;
-    ir.rhs = rhs;
-    return ir;
-}
-
-size_t gen_ir_sub(ref IR[] ins, ref size_t regno, Node* node)
+size_t gen_expr(ref IR[] ins, ref size_t regno, Node* node)
 {
     if (node.type == NodeType.NUM)
     {
         size_t r = regno++;
-        ins ~= new_ir(IRType.IMM, r, node.val);
+        ins ~= IR(IRType.IMM, r, node.val);
         return r;
     }
 
     assert("+-*/".any!(v => cast(IRType) v == cast(IRType) node.type));
 
-    size_t lhs = gen_ir_sub(ins, regno, node.lhs);
-    size_t rhs = gen_ir_sub(ins, regno, node.rhs);
+    size_t lhs = gen_expr(ins, regno, node.lhs);
+    size_t rhs = gen_expr(ins, regno, node.rhs);
 
-    ins ~= new_ir(cast(IRType) node.type, lhs, rhs);
-    ins ~= new_ir(IRType.KILL, rhs, 0);
+    ins ~= IR(cast(IRType) node.type, lhs, rhs);
+    ins ~= IR(IRType.KILL, rhs, 0);
     return lhs;
+}
+
+IR[] gen_stmt(ref size_t regno, Node* node)
+{
+    IR[] res;
+    if (node.type == NodeType.RETURN)
+    {
+        size_t r = gen_expr(res, regno, node.expr);
+        res ~= IR(IRType.RETURN, r, 0);
+        res ~= IR(IRType.KILL, r, 0);
+        return res;
+    }
+
+    if (node.type == NodeType.EXPR_STMT)
+    {
+        size_t r = gen_expr(res, regno, node.expr);
+        res ~= IR(IRType.KILL, r, 0);
+        return res;
+    }
+
+    if (node.type == NodeType.COMP_STMT)
+    {
+        foreach (stmt; node.stmts)
+        {
+            res ~= gen_stmt(regno, &stmt);
+        }
+        return res;
+    }
+
+    error("unknown code: %s", node.type);
+    assert(0);
 }

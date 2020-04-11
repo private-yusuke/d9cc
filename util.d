@@ -1,5 +1,7 @@
 module util;
 
+import std.stdio : stderr;
+
 public:
 
 int nextInt(string s, ref size_t i)
@@ -22,4 +24,10 @@ class QuitException : Exception
         super(null, file, line);
         this.return_code = return_code;
     }
+}
+
+void error(A...)(string msg, A args)
+{
+    stderr.writefln(msg, args);
+    throw new QuitException(-1);
 }
