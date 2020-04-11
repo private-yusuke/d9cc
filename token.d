@@ -28,6 +28,21 @@ struct Token
     TokenType type; // Token type
     int val; // Number literal
     string input; // Token string (for error reporting)
+
+    // for debugging!
+    string toString()
+    {
+        import std.string : format;
+        import std.conv : to;
+
+        switch (type)
+        {
+        case TokenType.NUM:
+            return "%s %s".format(type, val);
+        default:
+            return type.to!string;
+        }
+    }
 }
 
 Token[] tokenize(string s)

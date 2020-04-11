@@ -19,6 +19,15 @@ int main(string[] args)
 
         IR[] ins = gen_ir(node);
         alloc_regs(ins);
+        debug
+        {
+            import std.algorithm : each;
+
+            "=== tokens ===".writeln;
+            tokens.each!writeln;
+            "=== irs ===".writeln;
+            ins.each!writeln;
+        }
 
         writeln(".intel_syntax noprefix");
         writeln(".global main");

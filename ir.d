@@ -25,6 +25,20 @@ struct IR
 
     size_t lhs;
     size_t rhs;
+
+    string toString()
+    {
+        import std.string : format;
+        import std.conv : to;
+
+        switch (type)
+        {
+        case IRType.IMM:
+            return "IMM %s %s".format(lhs, rhs);
+        default:
+            return type.to!string;
+        }
+    }
 }
 
 IR[] gen_ir(Node* node)
