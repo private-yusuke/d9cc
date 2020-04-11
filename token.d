@@ -2,8 +2,8 @@ module token;
 
 import std.stdio : stderr;
 import std.uni : isSpace;
-import std.conv : to;
 import std.ascii : isDigit;
+import std.algorithm : canFind;
 
 import util;
 
@@ -38,10 +38,10 @@ Token[] tokenize(string s)
             i++;
             continue;
         }
-        if (s[i] == '+' || s[i] == '-')
+        if ("+-*".canFind(s[i]))
         {
             Token t;
-            t.type = s[i].to!TokenType;
+            t.type = cast(TokenType) s[i];
             t.input = s[i .. i + 1];
 
             res ~= t;

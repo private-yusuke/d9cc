@@ -1,11 +1,11 @@
 module ir;
 
+import std.algorithm : any;
 import parse;
 
 // Intermediate representation
 
 public:
-
 enum IRType
 {
     IMM,
@@ -14,12 +14,14 @@ enum IRType
     KILL,
     NOP,
     ADD = '+',
-    SUB = '-'
+    SUB = '-',
+    MUL = '*'
 }
 
 struct IR
 {
     IRType type;
+
     size_t lhs;
     size_t rhs;
 }
@@ -54,7 +56,7 @@ size_t gen_ir_sub(ref IR[] ins, ref size_t regno, Node* node)
         return r;
     }
 
-    assert(node.type == '+' || node.type == '-');
+    assert("+-*".any!(v => cast(IRType) v == cast(IRType) node.type));
 
     size_t lhs = gen_ir_sub(ins, regno, node.lhs);
     size_t rhs = gen_ir_sub(ins, regno, node.rhs);

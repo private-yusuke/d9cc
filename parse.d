@@ -22,7 +22,13 @@ struct Node
 
 Node* parse(Token[] tokens)
 {
-    return expr(tokens);
+    size_t pos;
+    Node* node = expr(tokens, pos);
+
+    TokenType t = tokens[pos].type;
+    if (t != TokenType.EOF)
+        stderr.writefln("stray token: %s", tokens[pos].input);
+    return node;
 }
 
 private:
@@ -51,20 +57,29 @@ Node* number(Token[] tokens, ref size_t pos)
     throw new QuitException(-1);
 }
 
-Node* expr(Token[] tokens)
+Node* mul(Token[] tokens, ref size_t pos)
 {
-    size_t pos;
     Node* lhs = number(tokens, pos);
     while (true)
     {
         TokenType op = tokens[pos].type;
-        if (op != '+' && op != '-')
-            break;
+        if (op != '*' && op != '/')
+            return lhs;
         pos++;
         lhs = new_node(cast(NodeType) op, lhs, number(tokens, pos));
     }
+}
 
-    if (tokens[pos].type != TokenType.EOF)
-        stderr.writefln("stray token: %s", tokens[pos].input);
+Node* expr(Token[] tokens, ref size_t pos)
+{
+    Node* lhs = mul(tokens, pos);
+    while (true)
+    {
+        TokenType op = tokens[pos].type;
+        if (op != '+' && op != '-')
+            return lhs;
+        pos++;
+        lhs = new_node(cast(NodeType) op, lhs, mul(tokens, pos));
+    }
     return lhs;
 }
