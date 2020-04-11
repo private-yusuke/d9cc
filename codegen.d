@@ -32,6 +32,12 @@ void gen_x86(IR[] ins)
             writefln("  mul %s", regs[ir.lhs]);
             writefln("  mov %s, rax", regs[ir.lhs]);
             break;
+        case IRType.DIV:
+            writefln("  mov rax, %s", regs[ir.lhs]);
+            writeln("  cqo");
+            writefln("  div %s", regs[ir.rhs]);
+            writefln("  mov %s, rax", regs[ir.lhs]);
+            break;
         case IRType.NOP:
             break;
         default:

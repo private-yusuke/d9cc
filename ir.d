@@ -15,7 +15,8 @@ enum IRType
     NOP,
     ADD = '+',
     SUB = '-',
-    MUL = '*'
+    MUL = '*',
+    DIV = '/'
 }
 
 struct IR
@@ -56,7 +57,7 @@ size_t gen_ir_sub(ref IR[] ins, ref size_t regno, Node* node)
         return r;
     }
 
-    assert("+-*".any!(v => cast(IRType) v == cast(IRType) node.type));
+    assert("+-*/".any!(v => cast(IRType) v == cast(IRType) node.type));
 
     size_t lhs = gen_ir_sub(ins, regno, node.lhs);
     size_t rhs = gen_ir_sub(ins, regno, node.rhs);
