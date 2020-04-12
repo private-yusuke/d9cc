@@ -2,3 +2,4 @@
 *.o
 tmp*
 d9cc
+d9cc-debug
