@@ -7,6 +7,11 @@ public:
 
 void gen_x86(IR[] ins)
 {
+    string ret = gen_label();
+
+    writeln("  push rbp");
+    writeln("  mov rbp, rsp");
+
     foreach (ir; ins)
     {
         switch (ir.type)
@@ -19,7 +24,18 @@ void gen_x86(IR[] ins)
             break;
         case IRType.RETURN:
             writefln("  mov rax, %s", regs[ir.lhs]);
-            writeln("  ret");
+            writefln("  jmp %s", ret);
+            break;
+        case IRType.ALLOCA:
+            if (ir.rhs != -1)
+                writefln("  sub rsp, %d", ir.rhs);
+            writefln("  mov %s, rsp", regs[ir.lhs]);
+            break;
+        case IRType.LOAD:
+            writefln("  mov %s, [%s]", regs[ir.lhs], regs[ir.rhs]);
+            break;
+        case IRType.STORE:
+            writefln("  mov [%s], %s", regs[ir.lhs], regs[ir.rhs]);
             break;
         case IRType.ADD:
             writefln("  add %s, %s", regs[ir.lhs], regs[ir.rhs]);
@@ -44,4 +60,20 @@ void gen_x86(IR[] ins)
             assert(0, "unknown operator");
         }
     }
+
+    writefln("%s:", ret);
+    writeln("  mov rsp, rbp");
+    writeln("  pop rbp");
+    writeln("  ret");
+}
+
+private:
+
+import std.string : format;
+
+size_t n;
+
+string gen_label()
+{
+    return format(".L%d", n++);
 }

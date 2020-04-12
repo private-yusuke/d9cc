@@ -11,29 +11,29 @@ static immutable string[] regs = [
 
 void alloc_regs(ref IR[] ins)
 {
-    size_t[size_t] reg_map;
-    bool[] used = new bool[](regs.length);
+    used = new bool[](regs.length);
 
     foreach (ref ir; ins)
     {
         switch (ir.type)
         {
         case IRType.IMM:
-            ir.lhs = alloc(reg_map, used, ir.lhs);
+        case IRType.ALLOCA:
+        case IRType.RETURN:
+            ir.lhs = alloc(ir.lhs);
             break;
         case IRType.MOV:
+        case IRType.LOAD:
+        case IRType.STORE:
         case IRType.ADD:
         case IRType.SUB:
         case IRType.MUL:
         case IRType.DIV:
-            ir.lhs = alloc(reg_map, used, ir.lhs);
-            ir.rhs = alloc(reg_map, used, ir.rhs);
-            break;
-        case IRType.RETURN:
-            ir.lhs = alloc(reg_map, used, ir.lhs);
+            ir.lhs = alloc(ir.lhs);
+            ir.rhs = alloc(ir.rhs);
             break;
         case IRType.KILL:
-            kill(used, reg_map[ir.lhs]);
+            kill(reg_map[ir.lhs]);
             ir.type = IRType.NOP;
             break;
         default:
@@ -43,8 +43,10 @@ void alloc_regs(ref IR[] ins)
 }
 
 private:
+size_t[size_t] reg_map;
+bool[] used;
 
-size_t alloc(ref size_t[size_t] reg_map, ref bool[] used, size_t ir_reg)
+size_t alloc(size_t ir_reg)
 {
     if (ir_reg in reg_map)
     {
@@ -65,7 +67,7 @@ size_t alloc(ref size_t[size_t] reg_map, ref bool[] used, size_t ir_reg)
     assert(0);
 }
 
-void kill(ref bool[] used, size_t r)
+void kill(size_t r)
 {
     assert(used[r]);
     used[r] = false;

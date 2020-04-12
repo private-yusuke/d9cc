@@ -14,12 +14,14 @@ public:
 enum TokenType
 {
     NUM, // Number literal
+    IDENT, // Identifier
     ADD = '+',
     SUB = '-',
     MUL = '*',
     DIV = '/',
     RETURN, // "return"
     SEMICOLONE = ';',
+    ASSIGN = '=',
     EOF // End marker
 }
 
@@ -27,6 +29,7 @@ struct Token
 {
     TokenType type; // Token type
     int val; // Number literal
+    string name; // Identifier
     string input; // Token string (for error reporting)
 
     // for debugging!
@@ -59,7 +62,7 @@ Token[] tokenize(string s)
             i++;
             continue;
         }
-        if ("+-*/;".canFind(s[i]))
+        if ("+-*/;=".canFind(s[i]))
         {
             Token t;
             t.type = cast(TokenType) s[i];
@@ -77,7 +80,6 @@ Token[] tokenize(string s)
             size_t _i = i;
             t.val = nextInt(s, i);
             t.input = s[_i .. i];
-
             res ~= t;
             continue;
         }
@@ -90,10 +92,22 @@ Token[] tokenize(string s)
                 len++;
 
             string name = s[i .. i + len];
-            if (name !in keywords)
-                error("unknown identifier: %s", name);
+            if (name in keywords)
+            {
+                Token t;
+                t.type = keywords[name];
+                t.input = name;
+                res ~= t;
+            }
+            else
+            {
+                Token t;
+                t.type = TokenType.IDENT;
+                t.name = name;
+                t.input = name;
+                res ~= t;
+            }
 
-            res ~= Token(keywords[name], 0, name);
             i += len;
             continue;
         }
@@ -101,8 +115,6 @@ Token[] tokenize(string s)
         error("cannot tokenize: %s", s);
     }
 
-    Token t;
-    t.type = TokenType.EOF;
-    res ~= t;
+    res ~= Token(TokenType.EOF);
     return res;
 }
