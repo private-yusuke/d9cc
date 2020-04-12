@@ -31,6 +31,7 @@ struct Node
     // "if"
     Node* cond;
     Node* then;
+    Node* els;
 }
 
 Node* parse(Token[] tokens)
@@ -146,7 +147,12 @@ Node* stmt(Token[] tokens)
         expect(tokens, '(');
         node.cond = assign(tokens);
         expect(tokens, ')');
+
         node.then = stmt(tokens);
+
+        if (consume(tokens, TokenType.ELSE))
+            node.els = stmt(tokens);
+
         return node;
     case TokenType.RETURN:
         pos++;

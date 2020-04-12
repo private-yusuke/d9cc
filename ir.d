@@ -13,6 +13,7 @@ enum IRType
     MOV,
     RETURN,
     LABEL,
+    JMP,
     UNLESS,
     ALLOCA,
     LOAD,
@@ -59,6 +60,7 @@ struct IR
         case IRType.ALLOCA:
             return IRInfo.REG_IMM;
         case IRType.LABEL:
+        case IRType.JMP:
             return IRInfo.LABEL;
         case IRType.UNLESS:
             return IRInfo.REG_LABEL;
@@ -177,10 +179,23 @@ IR[] gen_stmt(Node* node)
     {
         long r = gen_expr(res, node.cond);
         long x = label++;
+
         res ~= IR(IRType.UNLESS, r, x);
         res ~= IR(IRType.KILL, r, -1);
+
         res ~= gen_stmt(node.then);
+
+        if (!node.els)
+        {
+            res ~= IR(IRType.LABEL, x, -1);
+            return res;
+        }
+
+        long y = label++;
+        res ~= IR(IRType.JMP, y, -1);
         res ~= IR(IRType.LABEL, x, -1);
+        res ~= gen_stmt(node.els);
+        res ~= IR(IRType.LABEL, y, -1);
         return res;
     }
 

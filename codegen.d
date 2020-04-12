@@ -33,6 +33,9 @@ void gen_x86(IR[] ins)
         case IRType.LABEL:
             writefln(".L%d:", ir.lhs);
             break;
+        case IRType.JMP:
+            writefln("  jmp .L%d", ir.lhs);
+            break;
         case IRType.UNLESS:
             writefln("  cmp %s, 0", regs[ir.lhs]);
             writefln("  je .L%d", ir.rhs);
