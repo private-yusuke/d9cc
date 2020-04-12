@@ -62,7 +62,7 @@ Token[] tokenize(string s)
             i++;
             continue;
         }
-        if ("+-*/;=".canFind(s[i]))
+        if ("+-*/;=()".canFind(s[i]))
         {
             Token t;
             t.type = cast(TokenType) s[i];

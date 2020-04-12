@@ -64,8 +64,17 @@ Node* new_node(NodeType op, Node* lhs, Node* rhs)
 
 Node* term(Token[] tokens)
 {
-    Node* node = new Node;
     Token t = tokens[pos++];
+
+    if (t.type == '(')
+    {
+        Node* node = assign(tokens);
+        expect(')', tokens);
+        return node;
+    }
+
+    Node* node = new Node;
+
     if (t.type == TokenType.NUM)
     {
         node.type = NodeType.NUM;
