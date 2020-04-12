@@ -37,7 +37,7 @@ private:
 
 size_t pos;
 
-void expect(char c, Token[] tokens)
+void expect(Token[] tokens, char c)
 {
     if (tokens[pos].type != cast(TokenType) c)
         error("%s (%s) expected, but got %s (%s)", c, cast(TokenType) c,
@@ -69,7 +69,7 @@ Node* term(Token[] tokens)
     if (t.type == '(')
     {
         Node* node = assign(tokens);
-        expect(')', tokens);
+        expect(tokens, ')');
         return node;
     }
 
@@ -153,7 +153,7 @@ Node* stmt(Token[] tokens)
             e.expr = assign(tokens);
         }
         node.stmts ~= e;
-        expect(';', tokens);
+        expect(tokens, ';');
     }
     return node;
 }
