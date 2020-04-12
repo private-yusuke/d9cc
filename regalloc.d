@@ -15,30 +15,24 @@ void alloc_regs(ref IR[] ins)
 
     foreach (ref ir; ins)
     {
-        switch (ir.type)
+        switch (ir.getInfo())
         {
-        case IRType.IMM:
-        case IRType.ADD_IMM:
-        case IRType.ALLOCA:
-        case IRType.RETURN:
+        case IRInfo.REG:
+        case IRInfo.REG_IMM:
+        case IRInfo.REG_LABEL:
             ir.lhs = alloc(ir.lhs);
             break;
-        case IRType.MOV:
-        case IRType.LOAD:
-        case IRType.STORE:
-        case IRType.ADD:
-        case IRType.SUB:
-        case IRType.MUL:
-        case IRType.DIV:
+        case IRInfo.REG_REG:
             ir.lhs = alloc(ir.lhs);
             ir.rhs = alloc(ir.rhs);
             break;
-        case IRType.KILL:
-            kill(reg_map[ir.lhs]);
-            ir.type = IRType.NOP;
-            break;
         default:
-            assert(0, "unknown operator");
+            break;
+        }
+        if (ir.type == IRType.KILL)
+        {
+            kill(ir.lhs);
+            ir.type = IRType.NOP;
         }
     }
 }

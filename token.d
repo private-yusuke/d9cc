@@ -15,6 +15,7 @@ enum TokenType
 {
     NUM, // Number literal
     IDENT, // Identifier
+    IF, // "if"
     ADD = '+',
     SUB = '-',
     MUL = '*',
@@ -54,6 +55,7 @@ Token[] tokenize(string s)
     size_t i;
     TokenType[string] keywords;
     keywords["return"] = TokenType.RETURN;
+    keywords["if"] = TokenType.IF;
 
     while (i < s.length)
     {

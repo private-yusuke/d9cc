@@ -12,6 +12,8 @@ enum IRType
     ADD_IMM,
     MOV,
     RETURN,
+    LABEL,
+    UNLESS,
     ALLOCA,
     LOAD,
     STORE,
@@ -23,6 +25,16 @@ enum IRType
     DIV = '/'
 }
 
+enum IRInfo
+{
+    NOARG,
+    REG,
+    LABEL,
+    REG_REG,
+    REG_IMM,
+    REG_LABEL
+}
+
 struct IR
 {
     IRType type;
@@ -30,17 +42,57 @@ struct IR
     long lhs;
     long rhs;
 
+    IRInfo getInfo()
+    {
+        switch (type)
+        {
+        case IRType.ADD:
+        case IRType.SUB:
+        case IRType.MUL:
+        case IRType.DIV:
+        case IRType.MOV:
+        case IRType.LOAD:
+        case IRType.STORE:
+            return IRInfo.REG_REG;
+        case IRType.IMM:
+        case IRType.ADD_IMM:
+        case IRType.ALLOCA:
+            return IRInfo.REG_IMM;
+        case IRType.LABEL:
+            return IRInfo.LABEL;
+        case IRType.UNLESS:
+            return IRInfo.REG_LABEL;
+        case IRType.RETURN:
+        case IRType.KILL:
+            return IRInfo.REG;
+        case IRType.NOP:
+            return IRInfo.NOARG;
+        default:
+            assert(0);
+        }
+    }
+
     string toString()
     {
         import std.string : format;
         import std.conv : to;
 
-        switch (type)
+        switch (this.getInfo())
         {
-        case IRType.IMM:
-            return "IMM %s %s".format(lhs, rhs);
+        case IRInfo.LABEL:
+            return format("%s:", this.lhs);
+        case IRInfo.REG:
+            return format("%s r%d", this.type, this.lhs);
+        case IRInfo.REG_REG:
+            return format("%s r%d, r%d", this.type, this.lhs, this.rhs);
+        case IRInfo.REG_IMM:
+            return format("%s r%d, %d", this.type, this.lhs, this.rhs);
+        case IRInfo.REG_LABEL:
+            return format("%s r%d, .L%s", this.type, this.lhs, this.rhs);
+        case IRInfo.NOARG:
+            return this.type.to!string;
         default:
-            return type.to!string;
+            assert(0);
         }
     }
 }
@@ -61,6 +113,7 @@ private:
 long regno = 1;
 long basereg;
 long bpoff;
+long label;
 long[string] vars;
 
 long gen_lval(ref IR[] ins, Node* node)
@@ -119,6 +172,18 @@ long gen_expr(ref IR[] ins, Node* node)
 IR[] gen_stmt(Node* node)
 {
     IR[] res;
+
+    if (node.type == NodeType.IF)
+    {
+        long r = gen_expr(res, node.cond);
+        long x = label++;
+        res ~= IR(IRType.UNLESS, r, x);
+        res ~= IR(IRType.KILL, r, -1);
+        res ~= gen_stmt(node.then);
+        res ~= IR(IRType.LABEL, x, -1);
+        return res;
+    }
+
     if (node.type == NodeType.RETURN)
     {
         long r = gen_expr(res, node.expr);
@@ -138,7 +203,7 @@ IR[] gen_stmt(Node* node)
     {
         foreach (stmt; node.stmts)
         {
-            res ~= gen_stmt(&stmt);
+            res ~= gen_stmt(stmt);
         }
         return res;
     }

@@ -12,6 +12,7 @@ enum NodeType
     ASSIGN = '=',
     ADD = '+',
     SUB = '-',
+    IF, // "if"
     RETURN, // Return statement
     COMP_STMT, // Compound statement
     EXPR_STMT // Expressions statement
@@ -25,12 +26,16 @@ struct Node
     int val; // Number literal
     string name; // Identifier
     Node* expr; // "return" or expression stmt
-    Node[] stmts; // Compound statement
+    Node*[] stmts; // Compound statement
+
+    // "if"
+    Node* cond;
+    Node* then;
 }
 
 Node* parse(Token[] tokens)
 {
-    return stmt(tokens);
+    return compound_stmt(tokens);
 }
 
 private:
@@ -131,6 +136,35 @@ Node* assign(Token[] tokens)
 Node* stmt(Token[] tokens)
 {
     Node* node = new Node;
+    Token t = tokens[pos];
+
+    switch (t.type)
+    {
+    case TokenType.IF:
+        pos++;
+        node.type = NodeType.IF;
+        expect(tokens, '(');
+        node.cond = assign(tokens);
+        expect(tokens, ')');
+        node.then = stmt(tokens);
+        return node;
+    case TokenType.RETURN:
+        pos++;
+        node.type = NodeType.RETURN;
+        node.expr = assign(tokens);
+        expect(tokens, ';');
+        return node;
+    default:
+        node.type = NodeType.EXPR_STMT;
+        node.expr = assign(tokens);
+        expect(tokens, ';');
+        return node;
+    }
+}
+
+Node* compound_stmt(Token[] tokens)
+{
+    Node* node = new Node;
     node.type = NodeType.COMP_STMT;
     node.stmts = [];
 
@@ -139,21 +173,7 @@ Node* stmt(Token[] tokens)
         if (tokens[pos].type == TokenType.EOF)
             return node;
 
-        Node e;
-
-        if (tokens[pos].type == TokenType.RETURN)
-        {
-            pos++;
-            e.type = NodeType.RETURN;
-            e.expr = assign(tokens);
-        }
-        else
-        {
-            e.type = NodeType.EXPR_STMT;
-            e.expr = assign(tokens);
-        }
-        node.stmts ~= e;
-        expect(tokens, ';');
+        node.stmts ~= stmt(tokens);
     }
     return node;
 }

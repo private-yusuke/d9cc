@@ -1,13 +1,14 @@
 module codegen;
 
 import std.stdio : writeln, writefln;
+import std.string : format;
 import ir, parse, regalloc;
 
 public:
 
 void gen_x86(IR[] ins)
 {
-    string ret = gen_label();
+    string ret = ".Lend";
 
     writeln("  push rbp");
     writeln("  mov rbp, rsp");
@@ -28,6 +29,13 @@ void gen_x86(IR[] ins)
         case IRType.RETURN:
             writefln("  mov rax, %s", regs[ir.lhs]);
             writefln("  jmp %s", ret);
+            break;
+        case IRType.LABEL:
+            writefln(".L%d:", ir.lhs);
+            break;
+        case IRType.UNLESS:
+            writefln("  cmp %s, 0", regs[ir.lhs]);
+            writefln("  je .L%d", ir.rhs);
             break;
         case IRType.ALLOCA:
             if (ir.rhs != -1)
@@ -60,7 +68,7 @@ void gen_x86(IR[] ins)
         case IRType.NOP:
             break;
         default:
-            assert(0, "unknown operator");
+            assert(0, "unknown operator: %s".format(ir.type));
         }
     }
 
