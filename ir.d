@@ -100,7 +100,7 @@ struct IR
         case IRInfo.REG_LABEL:
             return format("%s r%d, .L%s", this.type, this.lhs, this.rhs);
         case IRInfo.CALL:
-            return format("r%d = %s(%(r%d, %)", this.name, this.lhs);
+            return format("r%s = %s(%(r%s, %))", this.rhs, this.name, this.args);
         case IRInfo.NOARG:
             return this.type.to!string;
         default:
