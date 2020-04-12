@@ -19,6 +19,9 @@ void gen_x86(IR[] ins)
         case IRType.IMM:
             writefln("  mov %s, %d", regs[ir.lhs], ir.rhs);
             break;
+        case IRType.ADD_IMM:
+            writefln("  add %s, %d", regs[ir.lhs], ir.rhs);
+            break;
         case IRType.MOV:
             writefln("  mov %s, %s", regs[ir.lhs], regs[ir.rhs]);
             break;

@@ -9,6 +9,7 @@ public:
 enum IRType
 {
     IMM,
+    ADD_IMM,
     MOV,
     RETURN,
     ALLOCA,
@@ -72,17 +73,11 @@ long gen_lval(ref IR[] ins, Node* node)
         vars[node.name] = bpoff;
         bpoff += 8;
     }
-
-    long r1 = regno++;
+    long r = regno++;
     long off = vars[node.name];
-    ins ~= IR(IRType.MOV, r1, basereg);
-
-    long r2 = regno++;
-    ins ~= IR(IRType.IMM, r2, off);
-    ins ~= IR(IRType.ADD, r1, r2);
-    ins ~= IR(IRType.KILL, r2, -1);
-
-    return r1;
+    ins ~= IR(IRType.MOV, r, basereg);
+    ins ~= IR(IRType.ADD_IMM, r, off);
+    return r;
 }
 
 long gen_expr(ref IR[] ins, Node* node)

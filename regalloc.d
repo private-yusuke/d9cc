@@ -18,6 +18,7 @@ void alloc_regs(ref IR[] ins)
         switch (ir.type)
         {
         case IRType.IMM:
+        case IRType.ADD_IMM:
         case IRType.ALLOCA:
         case IRType.RETURN:
             ir.lhs = alloc(ir.lhs);
