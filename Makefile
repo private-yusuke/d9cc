@@ -9,4 +9,4 @@ test: d9cc
 	./test.sh
 
 clean:
-	rm -f d9cc *.o *~ tmp*
+	rm -f d9cc d9cc-debug *.o *~ tmp*

@@ -2,6 +2,8 @@ module codegen;
 
 import std.stdio : writeln, writefln;
 import std.string : format;
+import std.algorithm : each;
+import std.range : retro;
 import ir, parse, regalloc;
 
 public:
@@ -29,6 +31,24 @@ void gen_x86(IR[] ins)
         case IRType.RETURN:
             writefln("  mov rax, %s", regs[ir.lhs]);
             writefln("  jmp %s", ret);
+            break;
+        case IRType.CALL:
+            static immutable save_regs = [
+                "rbx", "rbp", "rsp", "r12", "r13", "r14", "r15"
+            ];
+            save_regs.each!(v => writefln("  push %s", v));
+            static immutable arg = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"];
+
+            foreach (i, v; ir.args)
+            {
+                writefln("  mov %s, %s", arg[i], regs[v]);
+            }
+
+            writeln("  mov rax, 0");
+            writefln("  call %s", ir.name);
+            writefln("  mov %s, rax", regs[ir.lhs]);
+
+            save_regs.retro.each!(v => writefln("  pop %s", v));
             break;
         case IRType.LABEL:
             writefln(".L%d:", ir.lhs);

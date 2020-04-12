@@ -12,6 +12,7 @@ enum IRType
     ADD_IMM,
     MOV,
     RETURN,
+    CALL,
     LABEL,
     JMP,
     UNLESS,
@@ -33,15 +34,20 @@ enum IRInfo
     LABEL,
     REG_REG,
     REG_IMM,
-    REG_LABEL
+    REG_LABEL,
+    CALL
 }
 
 struct IR
 {
     IRType type;
-
     long lhs;
     long rhs;
+
+    // Function call
+    string name;
+    long nargs;
+    long[] args;
 
     IRInfo getInfo()
     {
@@ -64,6 +70,8 @@ struct IR
             return IRInfo.LABEL;
         case IRType.UNLESS:
             return IRInfo.REG_LABEL;
+        case IRType.CALL:
+            return IRInfo.CALL;
         case IRType.RETURN:
         case IRType.KILL:
             return IRInfo.REG;
@@ -91,6 +99,8 @@ struct IR
             return format("%s r%d, %d", this.type, this.lhs, this.rhs);
         case IRInfo.REG_LABEL:
             return format("%s r%d, .L%s", this.type, this.lhs, this.rhs);
+        case IRInfo.CALL:
+            return format("r%d = %s(%(r%d, %)", this.name, this.lhs);
         case IRInfo.NOARG:
             return this.type.to!string;
         default:
@@ -148,6 +158,22 @@ long gen_expr(ref IR[] ins, Node* node)
     {
         long r = gen_lval(ins, node);
         ins ~= IR(IRType.LOAD, r, r);
+        return r;
+    }
+
+    if (node.type == NodeType.CALL)
+    {
+        IR ir;
+        ir.type = IRType.CALL;
+        foreach (arg; node.args)
+            ir.args ~= gen_expr(ins, &arg);
+
+        long r = regno++;
+        ir.lhs = r;
+        ir.name = node.name;
+        ins ~= ir;
+        foreach (v; ir.args)
+            ins ~= IR(IRType.KILL, v, -1);
         return r;
     }
 

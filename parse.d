@@ -14,6 +14,7 @@ enum NodeType
     SUB = '-',
     IF, // "if"
     RETURN, // Return statement
+    CALL, // Function call
     COMP_STMT, // Compound statement
     EXPR_STMT // Expressions statement
 }
@@ -32,6 +33,8 @@ struct Node
     Node* cond;
     Node* then;
     Node* els;
+
+    Node[] args;
 }
 
 Node* parse(Token[] tokens)
@@ -91,8 +94,23 @@ Node* term(Token[] tokens)
 
     if (t.type == TokenType.IDENT)
     {
-        node.type = NodeType.IDENT;
         node.name = t.name;
+
+        if (!consume(tokens, TokenType.LEFT_PAREN))
+        {
+            node.type = NodeType.IDENT;
+            return node;
+        }
+
+        node.type = NodeType.CALL;
+        node.args = [];
+        if (consume(tokens, TokenType.RIGHT_PAREN))
+            return node;
+
+        node.args ~= *assign(tokens);
+        while (consume(tokens, TokenType.COMMA))
+            node.args ~= *assign(tokens);
+        expect(tokens, TokenType.RIGHT_PAREN);
         return node;
     }
     error("number expected, but got %s", t.input);

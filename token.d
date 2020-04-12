@@ -22,8 +22,11 @@ enum TokenType
     MUL = '*',
     DIV = '/',
     RETURN, // "return"
+    COMMA = ',',
     SEMICOLONE = ';',
     ASSIGN = '=',
+    LEFT_PAREN = '(',
+    RIGHT_PAREN = ')',
     EOF // End marker
 }
 
@@ -66,7 +69,7 @@ Token[] tokenize(string s)
             i++;
             continue;
         }
-        if ("+-*/;=()".canFind(s[i]))
+        if ("+-*/;=(),".canFind(s[i]))
         {
             Token t;
             t.type = cast(TokenType) s[i];

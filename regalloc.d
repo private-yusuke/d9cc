@@ -26,6 +26,11 @@ void alloc_regs(ref IR[] ins)
             ir.lhs = alloc(ir.lhs);
             ir.rhs = alloc(ir.rhs);
             break;
+        case IRInfo.CALL:
+            ir.lhs = alloc(ir.lhs);
+            foreach (i, v; ir.args)
+                ir.args[i] = alloc(v);
+            break;
         default:
             break;
         }
