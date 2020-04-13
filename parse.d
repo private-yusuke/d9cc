@@ -15,6 +15,7 @@ enum NodeType
     IF, // "if"
     RETURN, // Return statement
     CALL, // Function call
+    FUNC, // Function definition
     COMP_STMT, // Compound statement
     EXPR_STMT // Expressions statement
 }
@@ -34,12 +35,21 @@ struct Node
     Node* then;
     Node* els;
 
+    /* Function definition
+     * Since D handles "body" as a reserved word,
+     * here "fbody" is used as an alternative.
+     */
+    Node* fbody;
+
     Node[] args;
 }
 
-Node* parse(Token[] tokens)
+Node[] parse(Token[] tokens)
 {
-    return compound_stmt(tokens);
+    Node[] v;
+    while (tokens[pos].type != TokenType.EOF)
+        v ~= *func(tokens);
+    return v;
 }
 
 private:
@@ -192,12 +202,32 @@ Node* compound_stmt(Token[] tokens)
     node.type = NodeType.COMP_STMT;
     node.stmts = [];
 
-    while (true)
+    while (!consume(tokens, TokenType.RIGHT_BRACES))
     {
-        if (tokens[pos].type == TokenType.EOF)
-            return node;
-
         node.stmts ~= stmt(tokens);
     }
+    return node;
+}
+
+/* Since D handles "function" as a reserved word,
+ * here "func" is used as an alternative.
+ */
+Node* func(Token[] tokens)
+{
+    Node* node = new Node;
+    node.type = NodeType.FUNC;
+    node.args = [];
+
+    Token t = tokens[pos];
+    if (t.type != TokenType.IDENT)
+        error("function name expected, but got %s", t.input);
+    node.name = t.name;
+    pos++;
+
+    expect(tokens, TokenType.LEFT_PAREN);
+    while (!consume(tokens, TokenType.RIGHT_PAREN))
+        node.args ~= *term(tokens);
+    expect(tokens, TokenType.LEFT_BRACES);
+    node.fbody = compound_stmt(tokens);
     return node;
 }

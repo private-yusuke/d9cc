@@ -6,13 +6,26 @@ import ir, util;
 public:
 
 static immutable string[] regs = [
-    "rdi", "rsi", "r10", "r11", "r12", "r13", "r14", "r15"
+    "r10", "r11", "rbx", "r12", "r13", "r14", "r15"
 ];
 
-void alloc_regs(ref IR[] ins)
+void alloc_regs(Function[] fns)
 {
-    used = new bool[](regs.length);
+    foreach (fn; fns)
+    {
+        reg_map.clear();
+        used = new bool[](regs.length);
 
+        visit(fn.ir);
+    }
+}
+
+private:
+long[long] reg_map;
+bool[] used;
+
+void visit(ref IR[] ins)
+{
     foreach (ref ir; ins)
     {
         switch (ir.getInfo())
@@ -42,15 +55,11 @@ void alloc_regs(ref IR[] ins)
     }
 }
 
-private:
-size_t[size_t] reg_map;
-bool[] used;
-
 size_t alloc(size_t ir_reg)
 {
     if (ir_reg in reg_map)
     {
-        size_t r = reg_map[ir_reg];
+        long r = reg_map[ir_reg];
         assert(used[r]);
         return r;
     }

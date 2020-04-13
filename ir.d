@@ -1,6 +1,7 @@
 module ir;
 
 import std.algorithm : any;
+import std.stdio : stderr;
 import parse, util;
 
 // Intermediate representation
@@ -109,15 +110,48 @@ struct IR
     }
 }
 
-IR[] gen_ir(Node* node)
+struct Function
 {
-    assert(node.type == NodeType.COMP_STMT);
+    string name;
+    long[] args;
+    IR[] ir;
+}
 
-    IR[] res;
-    res ~= IR(IRType.ALLOCA, basereg, 0);
-    res ~= gen_stmt(node);
-    res[0].rhs = bpoff;
+Function[] gen_ir(Node[] node)
+{
+    Function[] res;
+    foreach (n; node)
+    {
+        assert(n.type == NodeType.FUNC);
+
+        IR[] code;
+        regno = 1;
+        basereg = 0;
+        vars.clear();
+        bpoff = 0;
+        label = 0;
+
+        code ~= IR(IRType.ALLOCA, basereg, -1);
+        code ~= gen_stmt(n.fbody);
+        code[0].rhs = bpoff;
+        code ~= IR(IRType.KILL, basereg, -1);
+
+        Function fn;
+        fn.name = n.name;
+        fn.ir = code;
+        res ~= fn;
+    }
     return res;
+}
+
+void dump_ir(Function[] irv)
+{
+    foreach (fn; irv)
+    {
+        stderr.writefln("%s():", fn.name);
+        foreach (ir; fn.ir)
+            stderr.writefln("  %s", ir);
+    }
 }
 
 private:

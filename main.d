@@ -31,23 +31,17 @@ int main(string[] args)
     try
     {
         Token[] tokens = tokenize(input);
-        Node* node = parse.parse(tokens);
-
-        IR[] ins = gen_ir(node);
+        Function[] fns = gen_ir(parse.parse(tokens));
 
         if (dump_ir1)
-            ins.enumerate.each!(p => stderr.writefln("%3d:  %s", p[0], p[1]));
+            fns.enumerate.each!(p => stderr.writefln("%3d:  %s", p[0], p[1]));
 
-        alloc_regs(ins);
+        alloc_regs(fns);
 
         if (dump_ir2)
-            ins.each!(ir => stderr.writeln(ir));
+            fns.each!(ir => stderr.writeln(ir));
 
-        writeln(".intel_syntax noprefix");
-        writeln(".global main");
-        writeln("main:");
-
-        gen_x86(ins);
+        gen_x86(fns);
     }
     catch (QuitException e)
         return e.return_code;

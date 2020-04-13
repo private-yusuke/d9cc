@@ -8,14 +8,34 @@ import ir, parse, regalloc;
 
 public:
 
-void gen_x86(IR[] ins)
+void gen_x86(Function[] fns)
 {
-    string ret = ".Lend";
+    writeln(".intel_syntax noprefix");
 
+    foreach (fn; fns)
+        gen(fn);
+}
+
+private:
+
+import std.string : format;
+
+size_t n;
+long label;
+
+void gen(Function fn)
+{
+    string ret = ".Lend%d".format(label++);
+    writefln(".global %s", fn.name);
+    writefln("%s:", fn.name);
+    writeln("  push r12");
+    writeln("  push r13");
+    writeln("  push r14");
+    writeln("  push r15");
     writeln("  push rbp");
     writeln("  mov rbp, rsp");
 
-    foreach (ir; ins)
+    foreach (ir; fn.ir)
     {
         switch (ir.type)
         {
@@ -44,11 +64,14 @@ void gen_x86(IR[] ins)
                 writefln("  mov %s, %s", arg[i], regs[v]);
             }
 
+            writeln("  push r10");
+            writeln("  push r11");
             writeln("  mov rax, 0");
             writefln("  call %s", ir.name);
-            writefln("  mov %s, rax", regs[ir.lhs]);
+            writeln("  pop r11");
+            writeln("  pop r10");
 
-            save_regs.retro.each!(v => writefln("  pop %s", v));
+            writefln("  mov %s, rax", regs[ir.lhs]);
             break;
         case IRType.LABEL:
             writefln(".L%d:", ir.lhs);
@@ -98,14 +121,12 @@ void gen_x86(IR[] ins)
     writefln("%s:", ret);
     writeln("  mov rsp, rbp");
     writeln("  pop rbp");
+    writeln("  pop r15");
+    writeln("  pop r14");
+    writeln("  pop r13");
+    writeln("  pop r12");
     writeln("  ret");
 }
-
-private:
-
-import std.string : format;
-
-size_t n;
 
 string gen_label()
 {
