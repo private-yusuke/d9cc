@@ -23,6 +23,8 @@ import std.string : format;
 size_t n;
 long label;
 
+static immutable argreg = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"];
+
 void gen(Function fn)
 {
     string ret = ".Lend%d".format(label++);
@@ -43,8 +45,8 @@ void gen(Function fn)
         case IRType.IMM:
             writefln("  mov %s, %d", regs[ir.lhs], ir.rhs);
             break;
-        case IRType.ADD_IMM:
-            writefln("  add %s, %d", regs[ir.lhs], ir.rhs);
+        case IRType.SUB_IMM:
+            writefln("  sub %s, %d", regs[ir.lhs], ir.rhs);
             break;
         case IRType.MOV:
             writefln("  mov %s, %s", regs[ir.lhs], regs[ir.rhs]);
@@ -58,11 +60,10 @@ void gen(Function fn)
                 "rbx", "rbp", "rsp", "r12", "r13", "r14", "r15"
             ];
             save_regs.each!(v => writefln("  push %s", v));
-            static immutable arg = ["rdi", "rsi", "rdx", "rcx", "r8", "r9"];
 
             foreach (i, v; ir.args)
             {
-                writefln("  mov %s, %s", arg[i], regs[v]);
+                writefln("  mov %s, %s", argreg[i], regs[v]);
             }
 
             writeln("  push r10");
@@ -89,6 +90,10 @@ void gen(Function fn)
             break;
         case IRType.STORE:
             writefln("  mov [%s], %s", regs[ir.lhs], regs[ir.rhs]);
+            break;
+        case IRType.SAVE_ARGS:
+            foreach (i; 0 .. ir.lhs)
+                writefln("  mov [rbp-%d], %s", (i + 1) * 8, argreg[i]);
             break;
         case IRType.ADD:
             writefln("  add %s, %s", regs[ir.lhs], regs[ir.rhs]);

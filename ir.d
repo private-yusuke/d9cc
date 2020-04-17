@@ -10,7 +10,7 @@ public:
 enum IRType
 {
     IMM,
-    ADD_IMM,
+    SUB_IMM,
     MOV,
     RETURN,
     CALL,
@@ -20,6 +20,7 @@ enum IRType
     LOAD,
     STORE,
     KILL,
+    SAVE_ARGS,
     NOP,
     ADD = '+',
     SUB = '-',
@@ -34,6 +35,7 @@ enum IRInfo
 {
     NOARG,
     REG,
+    IMM,
     LABEL,
     REG_REG,
     REG_IMM,
@@ -65,7 +67,7 @@ struct IR
         case IRType.STORE:
             return IRInfo.REG_REG;
         case IRType.IMM:
-        case IRType.ADD_IMM:
+        case IRType.SUB_IMM:
             return IRInfo.REG_IMM;
         case IRType.LABEL:
         case IRType.JMP:
@@ -77,6 +79,8 @@ struct IR
         case IRType.RETURN:
         case IRType.KILL:
             return IRInfo.REG;
+        case IRType.SAVE_ARGS:
+            return IRInfo.IMM;
         case IRType.NOP:
             return IRInfo.NOARG;
         default:
@@ -93,6 +97,8 @@ struct IR
         {
         case IRInfo.LABEL:
             return format("%s:", this.lhs);
+        case IRInfo.IMM:
+            return format("%s %d", this.type, this.lhs);
         case IRInfo.REG:
             return format("%s r%d", this.type, this.lhs);
         case IRInfo.REG_REG:
@@ -129,8 +135,9 @@ Function[] gen_ir(Node[] node)
         IR[] code;
         vars.clear();
         regno = 1;
-        stacksize = 8;
+        stacksize = 0;
 
+        code ~= gen_args(n.args);
         code ~= gen_stmt(n.fbody);
 
         Function fn;
@@ -172,7 +179,7 @@ long gen_lval(ref IR[] ins, Node* node)
     long r = regno++;
     long off = vars[node.name];
     ins ~= IR(IRType.MOV, r, 0);
-    ins ~= IR(IRType.ADD_IMM, r, -off);
+    ins ~= IR(IRType.SUB_IMM, r, off);
     return r;
 }
 
@@ -226,6 +233,25 @@ long gen_expr(ref IR[] ins, Node* node)
     ins ~= IR(cast(IRType) node.type, lhs, rhs);
     ins ~= IR(IRType.KILL, rhs, -1);
     return lhs;
+}
+
+IR[] gen_args(Node[] nodes)
+{
+    if (nodes.length == 0)
+        return [];
+
+    IR[] res;
+    res ~= IR(IRType.SAVE_ARGS, nodes.length, -1);
+    foreach (i; 0 .. nodes.length)
+    {
+        Node node = nodes[i];
+        if (node.type != NodeType.IDENT)
+            error("bad parameter");
+
+        stacksize += 8;
+        vars[node.name] = stacksize;
+    }
+    return res;
 }
 
 IR[] gen_stmt(Node* node)

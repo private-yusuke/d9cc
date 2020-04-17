@@ -225,8 +225,14 @@ Node* func(Token[] tokens)
     pos++;
 
     expect(tokens, TokenType.LEFT_PAREN);
-    while (!consume(tokens, TokenType.RIGHT_PAREN))
+    if (!consume(tokens, TokenType.RIGHT_PAREN))
+    {
         node.args ~= *term(tokens);
+        while (consume(tokens, TokenType.COMMA))
+            node.args ~= *term(tokens);
+        expect(tokens, TokenType.RIGHT_PAREN);
+    }
+
     expect(tokens, TokenType.LEFT_BRACES);
     node.fbody = compound_stmt(tokens);
     return node;
