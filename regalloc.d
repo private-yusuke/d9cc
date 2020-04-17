@@ -1,7 +1,7 @@
 module regalloc;
 
 import std.stdio : stderr, writeln;
-import ir, util;
+import gen_ir, util;
 
 public:
 

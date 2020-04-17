@@ -1,4 +1,4 @@
-module ir;
+module gen_ir;
 
 import std.algorithm : any;
 import std.stdio : stderr;

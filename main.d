@@ -3,7 +3,10 @@ module main;
 import std.stdio : writeln, stderr;
 import std.algorithm : each;
 import std.range : enumerate;
-import token, ir, parse, codegen, regalloc, util;
+import token, regalloc, util;
+import parse : parse;
+import gen_x86 : gen_x86;
+import gen_ir : gen_ir, Function;
 
 int main(string[] args)
 {
@@ -31,7 +34,7 @@ int main(string[] args)
     try
     {
         Token[] tokens = tokenize(input);
-        Function[] fns = gen_ir(parse.parse(tokens));
+        Function[] fns = gen_ir(parse(tokens));
 
         if (dump_ir1)
             fns.enumerate.each!(p => stderr.writefln("%3d:  %s", p[0], p[1]));

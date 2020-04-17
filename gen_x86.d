@@ -1,10 +1,10 @@
-module codegen;
+module gen_x86;
 
 import std.stdio : writeln, writefln;
 import std.string : format;
 import std.algorithm : each;
 import std.range : retro;
-import ir, parse, regalloc;
+import gen_ir, parse, regalloc;
 
 public:
 
