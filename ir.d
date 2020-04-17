@@ -120,7 +120,6 @@ struct IR
 struct Function
 {
     string name;
-    long[] args;
     long stacksize;
     IR[] ir;
 }
