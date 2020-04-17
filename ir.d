@@ -17,7 +17,6 @@ enum IRType
     LABEL,
     JMP,
     UNLESS,
-    ALLOCA,
     LOAD,
     STORE,
     KILL,
@@ -27,6 +26,9 @@ enum IRType
     MUL = '*',
     DIV = '/'
 }
+
+// Compile AST to intermediate code that has infinite number of registers.
+// Base pointer is always assigned to r0.
 
 enum IRInfo
 {
@@ -64,7 +66,6 @@ struct IR
             return IRInfo.REG_REG;
         case IRType.IMM:
         case IRType.ADD_IMM:
-        case IRType.ALLOCA:
             return IRInfo.REG_IMM;
         case IRType.LABEL:
         case IRType.JMP:
@@ -114,6 +115,7 @@ struct Function
 {
     string name;
     long[] args;
+    long stacksize;
     IR[] ir;
 }
 
@@ -125,19 +127,15 @@ Function[] gen_ir(Node[] node)
         assert(n.type == NodeType.FUNC);
 
         IR[] code;
-        regno = 1;
-        basereg = 0;
         vars.clear();
-        bpoff = 0;
-        label = 0;
+        regno = 1;
+        stacksize = 8;
 
-        code ~= IR(IRType.ALLOCA, basereg, -1);
         code ~= gen_stmt(n.fbody);
-        code[0].rhs = bpoff;
-        code ~= IR(IRType.KILL, basereg, -1);
 
         Function fn;
         fn.name = n.name;
+        fn.stacksize = stacksize;
         fn.ir = code;
         res ~= fn;
     }
@@ -156,9 +154,8 @@ void dump_ir(Function[] irv)
 
 private:
 
-long regno = 1;
-long basereg;
-long bpoff;
+long regno;
+long stacksize;
 long label;
 long[string] vars;
 
@@ -169,13 +166,13 @@ long gen_lval(ref IR[] ins, Node* node)
 
     if (node.name !in vars)
     {
-        vars[node.name] = bpoff;
-        bpoff += 8;
+        stacksize += 8;
+        vars[node.name] = stacksize;
     }
     long r = regno++;
     long off = vars[node.name];
-    ins ~= IR(IRType.MOV, r, basereg);
-    ins ~= IR(IRType.ADD_IMM, r, off);
+    ins ~= IR(IRType.MOV, r, 0);
+    ins ~= IR(IRType.ADD_IMM, r, -off);
     return r;
 }
 

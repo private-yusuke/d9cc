@@ -6,7 +6,7 @@ import ir, util;
 public:
 
 static immutable string[] regs = [
-    "r10", "r11", "rbx", "r12", "r13", "r14", "r15"
+    "rbp", "r10", "r11", "rbx", "r12", "r13", "r14", "r15"
 ];
 
 void alloc_regs(Function[] fns)
@@ -26,6 +26,10 @@ bool[] used;
 
 void visit(ref IR[] ins)
 {
+    // r0 is a reserved register taht is always mapped to rbp.
+    reg_map[0] = 0;
+    used[0] = true;
+
     foreach (ref ir; ins)
     {
         switch (ir.getInfo())
@@ -68,8 +72,8 @@ size_t alloc(size_t ir_reg)
     {
         if (used[i])
             continue;
-        used[i] = true;
         reg_map[ir_reg] = i;
+        used[i] = true;
         return i;
     }
     error("register exhausted");

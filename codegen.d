@@ -28,12 +28,13 @@ void gen(Function fn)
     string ret = ".Lend%d".format(label++);
     writefln(".global %s", fn.name);
     writefln("%s:", fn.name);
+    writeln("  push rbp");
+    writeln("  mov rbp, rsp");
+    writefln("  sub rsp, %d", fn.stacksize);
     writeln("  push r12");
     writeln("  push r13");
     writeln("  push r14");
     writeln("  push r15");
-    writeln("  push rbp");
-    writeln("  mov rbp, rsp");
 
     foreach (ir; fn.ir)
     {
@@ -83,11 +84,6 @@ void gen(Function fn)
             writefln("  cmp %s, 0", regs[ir.lhs]);
             writefln("  je .L%d", ir.rhs);
             break;
-        case IRType.ALLOCA:
-            if (ir.rhs != -1)
-                writefln("  sub rsp, %d", ir.rhs);
-            writefln("  mov %s, rsp", regs[ir.lhs]);
-            break;
         case IRType.LOAD:
             writefln("  mov %s, [%s]", regs[ir.lhs], regs[ir.rhs]);
             break;
@@ -119,12 +115,12 @@ void gen(Function fn)
     }
 
     writefln("%s:", ret);
-    writeln("  mov rsp, rbp");
-    writeln("  pop rbp");
     writeln("  pop r15");
     writeln("  pop r14");
     writeln("  pop r13");
     writeln("  pop r12");
+    writeln("  mov rsp, rbp");
+    writeln("  pop rbp");
     writeln("  ret");
 }
 
