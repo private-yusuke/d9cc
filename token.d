@@ -17,6 +17,8 @@ enum TokenType
     IDENT, // Identifier
     IF, // "if"
     ELSE, // "else"
+    LOGOR, // ||
+    LOGAND, // &&
     ADD = '+',
     SUB = '-',
     MUL = '*',
@@ -64,7 +66,11 @@ Token[] tokenize(string s)
     keywords["if"] = TokenType.IF;
     keywords["else"] = TokenType.ELSE;
 
-    while (i < s.length)
+    TokenType[string] symbols;
+    symbols["&&"] = TokenType.LOGAND;
+    symbols["||"] = TokenType.LOGOR;
+
+    loop: while (i < s.length)
     {
         if (s[i].isSpace)
         {
@@ -80,6 +86,18 @@ Token[] tokenize(string s)
             res ~= t;
             i++;
             continue;
+        }
+        foreach (symbol, type; symbols)
+        {
+            if (s[i .. (i + symbol.length)] == symbol)
+            {
+                Token t;
+                t.type = type;
+                t.input = s[i .. (i + symbol.length)];
+                i += symbol.length;
+                res ~= t;
+                continue loop;
+            }
         }
 
         if (s[i].isDigit)

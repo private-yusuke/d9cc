@@ -12,7 +12,11 @@ enum NodeType
     ASSIGN = '=',
     ADD = '+',
     SUB = '-',
+    MUL = '*',
+    DIV = '/',
     IF, // "if"
+    LOGAND, // &&
+    LOGOR, // ||
     RETURN, // Return statement
     CALL, // Function call
     FUNC, // Function definition
@@ -132,11 +136,50 @@ Node* mul(Token[] tokens)
     Node* lhs = term(tokens);
     while (true)
     {
-        TokenType op = tokens[pos].type;
-        if (op != '*' && op != '/')
+        Token t = tokens[pos];
+        if (t.type != '*' && t.type != '/')
             return lhs;
         pos++;
-        lhs = new_node(cast(NodeType) op, lhs, term(tokens));
+        lhs = new_node(cast(NodeType) t.type, lhs, term(tokens));
+    }
+}
+
+Node* add(Token[] tokens)
+{
+    Node* lhs = mul(tokens);
+    while (true)
+    {
+        Token t = tokens[pos];
+        if (t.type != '+' && t.type != '-')
+            return lhs;
+        pos++;
+        lhs = new_node(cast(NodeType) t.type, lhs, mul(tokens));
+    }
+}
+
+Node* logand(Token[] tokens)
+{
+    Node* lhs = add(tokens);
+    while (true)
+    {
+        Token t = tokens[pos];
+        if (t.type != TokenType.LOGAND)
+            return lhs;
+        pos++;
+        lhs = new_node(NodeType.LOGAND, lhs, add(tokens));
+    }
+}
+
+Node* logor(Token[] tokens)
+{
+    Node* lhs = logand(tokens);
+    while (true)
+    {
+        Token t = tokens[pos];
+        if (t.type != TokenType.LOGOR)
+            return lhs;
+        pos++;
+        lhs = new_node(NodeType.LOGOR, lhs, logand(tokens));
     }
 }
 
@@ -156,9 +199,9 @@ Node* expr(Token[] tokens)
 
 Node* assign(Token[] tokens)
 {
-    Node* lhs = expr(tokens);
+    Node* lhs = logor(tokens);
     if (consume(tokens, TokenType.ASSIGN))
-        return new_node(NodeType.ASSIGN, lhs, expr(tokens));
+        return new_node(NodeType.ASSIGN, lhs, logor(tokens));
     return lhs;
 }
 

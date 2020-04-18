@@ -40,7 +40,8 @@ enum IRInfo
     REG_REG,
     REG_IMM,
     REG_LABEL,
-    CALL
+    CALL,
+    JMP
 }
 
 struct IR
@@ -70,8 +71,9 @@ struct IR
         case IRType.SUB_IMM:
             return IRInfo.REG_IMM;
         case IRType.LABEL:
-        case IRType.JMP:
             return IRInfo.LABEL;
+        case IRType.JMP:
+            return IRInfo.JMP;
         case IRType.UNLESS:
             return IRInfo.REG_LABEL;
         case IRType.CALL:
@@ -98,19 +100,21 @@ struct IR
         case IRInfo.LABEL:
             return format("%s:", this.lhs);
         case IRInfo.IMM:
-            return format("%s %d", this.type, this.lhs);
+            return format("  %s %d", this.type, this.lhs);
         case IRInfo.REG:
-            return format("%s r%d", this.type, this.lhs);
+            return format("  %s r%d", this.type, this.lhs);
         case IRInfo.REG_REG:
-            return format("%s r%d, r%d", this.type, this.lhs, this.rhs);
+            return format("  %s r%d, r%d", this.type, this.lhs, this.rhs);
         case IRInfo.REG_IMM:
-            return format("%s r%d, %d", this.type, this.lhs, this.rhs);
+            return format("  %s r%d, %d", this.type, this.lhs, this.rhs);
+        case IRInfo.JMP:
+            return format("  %s .L%d", this.type, this.lhs);
         case IRInfo.REG_LABEL:
-            return format("%s r%d, .L%s", this.type, this.lhs, this.rhs);
+            return format("  %s r%d, .L%s", this.type, this.lhs, this.rhs);
         case IRInfo.CALL:
-            return format("r%s = %s(%(r%s, %))", this.rhs, this.name, this.args);
+            return format("  r%s = %s(%(r%s, %))", this.rhs, this.name, this.args);
         case IRInfo.NOARG:
-            return this.type.to!string;
+            return format("  %s", this.type.to!string);
         default:
             assert(0);
         }
@@ -184,22 +188,47 @@ long gen_lval(ref IR[] ins, Node* node)
 
 long gen_expr(ref IR[] ins, Node* node)
 {
-    if (node.type == NodeType.NUM)
+    switch (node.type)
     {
+    case NodeType.NUM:
         long r = regno++;
         ins ~= IR(IRType.IMM, r, node.val);
         return r;
-    }
+    case NodeType.LOGAND:
+        long x = label++;
 
-    if (node.type == NodeType.IDENT)
-    {
+        long r1 = gen_expr(ins, node.lhs);
+        ins ~= IR(IRType.UNLESS, r1, x);
+        long r2 = gen_expr(ins, node.rhs);
+        ins ~= IR(IRType.MOV, r1, r2);
+        ins ~= IR(IRType.KILL, r2, -1);
+        ins ~= IR(IRType.UNLESS, r1, x);
+        ins ~= IR(IRType.IMM, r1, 1);
+        ins ~= IR(IRType.LABEL, x, -1);
+        return r1;
+    case NodeType.LOGOR:
+        long x = label++;
+        long y = label++;
+
+        long r1 = gen_expr(ins, node.lhs);
+        ins ~= IR(IRType.UNLESS, r1, x);
+        ins ~= IR(IRType.IMM, r1, 1);
+        ins ~= IR(IRType.JMP, y, -1);
+        ins ~= IR(IRType.LABEL, x, -1);
+
+        long r2 = gen_expr(ins, node.rhs);
+        ins ~= IR(IRType.MOV, r1, r2);
+        ins ~= IR(IRType.KILL, r2, -1);
+        ins ~= IR(IRType.UNLESS, r1, y);
+        ins ~= IR(IRType.IMM, r1, 1);
+        ins ~= IR(IRType.LABEL, y, -1);
+        return r1;
+
+    case NodeType.IDENT:
         long r = gen_lval(ins, node);
         ins ~= IR(IRType.LOAD, r, r);
         return r;
-    }
-
-    if (node.type == NodeType.CALL)
-    {
+    case NodeType.CALL:
         IR ir;
         ir.type = IRType.CALL;
         foreach (arg; node.args)
@@ -212,26 +241,21 @@ long gen_expr(ref IR[] ins, Node* node)
         foreach (v; ir.args)
             ins ~= IR(IRType.KILL, v, -1);
         return r;
-    }
-
-    if (node.type == NodeType.ASSIGN)
-    {
+    case NodeType.ASSIGN:
         long rhs = gen_expr(ins, node.rhs);
         long lhs = gen_lval(ins, node.lhs);
         ins ~= IR(IRType.STORE, lhs, rhs);
         ins ~= IR(IRType.KILL, rhs, -1);
 
         return lhs;
+    default:
+        assert("+-*/".any!(v => cast(IRType) v == cast(IRType) node.type));
+        long lhs = gen_expr(ins, node.lhs);
+        long rhs = gen_expr(ins, node.rhs);
+        ins ~= IR(cast(IRType) node.type, lhs, rhs);
+        ins ~= IR(IRType.KILL, rhs, -1);
+        return lhs;
     }
-
-    assert("+-*/".any!(v => cast(IRType) v == cast(IRType) node.type));
-
-    long lhs = gen_expr(ins, node.lhs);
-    long rhs = gen_expr(ins, node.rhs);
-
-    ins ~= IR(cast(IRType) node.type, lhs, rhs);
-    ins ~= IR(IRType.KILL, rhs, -1);
-    return lhs;
 }
 
 IR[] gen_args(Node[] nodes)

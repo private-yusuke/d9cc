@@ -1,8 +1,8 @@
 module main;
 
 import std.stdio : writeln, stderr;
-import std.algorithm : each;
-import std.range : enumerate;
+import std.algorithm : each, map;
+import std.range : enumerate, join;
 import token, regalloc, util;
 import parse : parse;
 import gen_x86 : gen_x86;
@@ -37,12 +37,18 @@ int main(string[] args)
         Function[] fns = gen_ir(parse(tokens));
 
         if (dump_ir1)
-            fns.enumerate.each!(p => stderr.writefln("%3d:  %s", p[0], p[1]));
+            fns.map!(f => f.ir)
+                .join
+                .enumerate
+                .each!(p => stderr.writefln("%3d: %s", p[0], p[1]));
 
         alloc_regs(fns);
 
         if (dump_ir2)
-            fns.each!(ir => stderr.writeln(ir));
+            fns.map!(f => f.ir)
+                .join
+                .enumerate
+                .each!(p => stderr.writefln("%3d: %s", p[0], p[1]));
 
         gen_x86(fns);
     }
