@@ -4,13 +4,15 @@ import std.stdio : writeln, stderr;
 import std.algorithm : each, map;
 import std.range : enumerate, join;
 import token, regalloc, util;
-import parse : parse;
+import parse : parse, Node;
 import gen_x86 : gen_x86;
 import gen_ir : gen_ir, Function;
+import sema : sema;
 
 int main(string[] args)
 {
     string input;
+
     bool dump_ir1 = false;
     bool dump_ir2 = false;
 
@@ -34,7 +36,9 @@ int main(string[] args)
     try
     {
         Token[] tokens = tokenize(input);
-        Function[] fns = gen_ir(parse(tokens));
+        Node[] nodes = parse(tokens);
+        sema(nodes);
+        Function[] fns = gen_ir(nodes);
 
         if (dump_ir1)
             fns.map!(f => f.ir)

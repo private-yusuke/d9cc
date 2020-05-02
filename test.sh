@@ -42,8 +42,8 @@ try 3 'int main() { if (0) return 2; else return 3; }'
 try 5 'int main() { return plus(2, 3); }'
 try 1 'int one() { return 1; } int main() { return one(); }'
 try 3 'int one() { return 1; } int two() { return 2; } int main() { return one()+two(); }'
-try 6 'int mul(a, b) { return a * b; } int main() { return mul(2, 3); }'
-try 21 'int add(a,b,c,d,e,f) { return a+b+c+d+e+f; } int main() { return add(1,2,3,4,5,6); }'
+try 6 'int mul(int a,int b) { return a * b; } int main() { return mul(2, 3); }'
+try 21 'int add(int a,int b,int c,int d,int e,int f) { return a+b+c+d+e+f; } int main() { return add(1,2,3,4,5,6); }'
 
 try 0 'int main() { return 0||0; }'
 try 1 'int main() { return 1||0; }'
@@ -65,8 +65,8 @@ try 1 'int main() { return 1>0; }'
 try 60 'int main() { int sum; sum=0; for (int i=10; i<15; i=i+1) sum = sum + i; return sum;}'
 
 # The 7th tribonacci number!!!!!!!!!!!!
-try 7 'int rec(a, b, c, n) {if(n-1) return rec(b, c, a+b+c, n-1); else return a;}int main() {return rec(0,0,1,7);}'
-try 7 'int trib(n){int a=0; int b=0; int c=1; int d=0; for(int i=0;i<n-1;i=i+1) {d=a+b+c;a=b;b=c;c=d;} return a;} int main() {return trib(7);}'
+try 7 'int rec(int a, int b, int c, int n) {if(n-1) return rec(b, c, a+b+c, n-1); else return a;}int main() {return rec(0,0,1,7);}'
+try 7 'int trib(int n){int a=0; int b=0; int c=1; int d=0; for(int i=0;i<n-1;i=i+1) {d=a+b+c;a=b;b=c;c=d;} return a;} int main() {return trib(7);}'
 
 try 89 'int main() { int i=1; int j=1; for (int k=0; k<10; k=k+1) { int m=i+j; i=j; j=m; } return i;}'
 

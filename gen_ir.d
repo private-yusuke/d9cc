@@ -130,24 +130,23 @@ struct Function
     IR[] ir;
 }
 
-Function[] gen_ir(Node[] node)
+Function[] gen_ir(Node[] nodes)
 {
     Function[] res;
-    foreach (n; node)
+    foreach (n; nodes)
     {
         assert(n.type == NodeType.FUNC);
 
         IR[] code;
-        vars.clear();
-        regno = 1;
-        stacksize = 0;
+        regno = 1; // 0 for the base register
 
-        code ~= gen_args(n.args);
+        if (nodes.length > 0)
+            code ~= IR(IRType.SAVE_ARGS, n.args.length);
         code ~= gen_stmt(n.fbody);
 
         Function fn;
         fn.name = n.name;
-        fn.stacksize = stacksize;
+        fn.stacksize = n.stacksize;
         fn.ir = code;
         res ~= fn;
     }
@@ -167,22 +166,16 @@ void dump_ir(Function[] irv)
 private:
 
 long regno;
-long stacksize;
 long label;
-long[string] vars;
 
 long gen_lval(ref IR[] ins, Node* node)
 {
-    if (node.type != NodeType.IDENT)
-        error("not an lvalue");
-
-    if (node.name !in vars)
-        error("undefined variable: %s", node.name);
+    if (node.type != NodeType.LVAR)
+        error("not an lvalue: %s (%s)", node.type, node.name);
 
     long r = regno++;
-    long off = vars[node.name];
     ins ~= IR(IRType.MOV, r, 0);
-    ins ~= IR(IRType.SUB_IMM, r, off);
+    ins ~= IR(IRType.SUB_IMM, r, node.offset);
     return r;
 }
 
@@ -233,7 +226,7 @@ long gen_expr(ref IR[] ins, Node* node)
         ins ~= IR(IRType.LABEL, y, -1);
         return r1;
 
-    case NodeType.IDENT:
+    case NodeType.LVAR:
         long r = gen_lval(ins, node);
         ins ~= IR(IRType.LOAD, r, r);
         return r;
@@ -268,27 +261,9 @@ long gen_expr(ref IR[] ins, Node* node)
     case NodeType.LESS_THAN:
         return gen_binop(ins, IRType.LT, node.lhs, node.rhs);
     default:
-        assert(0, "unknown AST type");
+        error("unknown AST type: %s", node.type);
+        assert(0);
     }
-}
-
-IR[] gen_args(Node[] nodes)
-{
-    if (nodes.length == 0)
-        return [];
-
-    IR[] res;
-    res ~= IR(IRType.SAVE_ARGS, nodes.length, -1);
-    foreach (i; 0 .. nodes.length)
-    {
-        Node node = nodes[i];
-        if (node.type != NodeType.IDENT)
-            error("bad parameter");
-
-        stacksize += 8;
-        vars[node.name] = stacksize;
-    }
-    return res;
 }
 
 IR[] gen_stmt(Node* node)
@@ -297,8 +272,6 @@ IR[] gen_stmt(Node* node)
 
     if (node.type == NodeType.VARDEF)
     {
-        stacksize += 8;
-        vars[node.name] = stacksize;
 
         if (!node.initialize)
             return res;
@@ -307,7 +280,7 @@ IR[] gen_stmt(Node* node)
         long lhs = regno++;
 
         res ~= IR(IRType.MOV, lhs, 0);
-        res ~= IR(IRType.SUB_IMM, lhs, stacksize);
+        res ~= IR(IRType.SUB_IMM, lhs, node.offset);
         res ~= IR(IRType.STORE, lhs, rhs);
         res ~= IR(IRType.KILL, lhs, -1);
         res ~= IR(IRType.KILL, rhs, -1);

@@ -10,12 +10,7 @@ enum NodeType
     NUM, // Number literal
     IDENT, // Identifier
     VARDEF, // Variable definition
-    ASSIGN = '=',
-    ADD = '+',
-    SUB = '-',
-    MUL = '*',
-    DIV = '/',
-    LESS_THAN = '<',
+    LVAR, // Variable reference
     IF, // "if"
     FOR, // "for"
     LOGAND, // &&
@@ -24,7 +19,13 @@ enum NodeType
     CALL, // Function call
     FUNC, // Function definition
     COMP_STMT, // Compound statement
-    EXPR_STMT // Expressions statement
+    EXPR_STMT, // Expressions statement
+    ASSIGN = '=',
+    ADD = '+',
+    SUB = '-',
+    MUL = '*',
+    DIV = '/',
+    LESS_THAN = '<',
 }
 
 struct Node
@@ -50,6 +51,12 @@ struct Node
     Node* initialize;
     Node* inc;
     Node* fbody;
+
+    // Function definition
+    long stacksize;
+
+    // Local variable
+    long offset;
 
     Node[] args;
 }
@@ -258,6 +265,20 @@ Node* decl(Token[] tokens)
     return node;
 }
 
+Node* param(Token[] tokens)
+{
+    Node* node = new Node;
+    node.type = NodeType.VARDEF;
+    pos++;
+
+    Token t = tokens[pos];
+    if (t.type != TokenType.IDENT)
+        error("parameter name expected, but got %s", t.input);
+    node.name = t.name;
+    pos++;
+    return node;
+}
+
 Node* expr_stmt(Token[] tokens)
 {
     Node* node = new Node;
@@ -359,9 +380,9 @@ Node* func(Token[] tokens)
     expect(tokens, TokenType.LEFT_PAREN);
     if (!consume(tokens, TokenType.RIGHT_PAREN))
     {
-        node.args ~= *term(tokens);
+        node.args ~= *param(tokens);
         while (consume(tokens, TokenType.COMMA))
-            node.args ~= *term(tokens);
+            node.args ~= *param(tokens);
         expect(tokens, TokenType.RIGHT_PAREN);
     }
 
