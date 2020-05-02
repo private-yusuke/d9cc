@@ -56,7 +56,8 @@ void visit(ref IR[] ins)
         }
         if (ir.type == IRType.KILL)
         {
-            kill(ir.lhs);
+            assert(used[ir.lhs]);
+            used[ir.lhs] = false;
             ir.type = IRType.NOP;
         }
     }
@@ -81,10 +82,4 @@ size_t alloc(size_t ir_reg)
     }
     error("register exhausted");
     assert(0);
-}
-
-void kill(size_t r)
-{
-    assert(used[r]);
-    used[r] = false;
 }
