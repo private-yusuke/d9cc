@@ -62,4 +62,9 @@ try 0 'main() { return 0>0; }'
 try 0 'main() { return 0>1; }'
 try 1 'main() { return 1>0; }'
 
+try 60 'main() { sum=0; for (i=10; i<15; i=i+1) sum = sum + i; return sum;}'
+
+# The 7th tribonacci number!!!!!!!!!!!!
+try 17 'rec(a, b, c, n) {if(n-1) return rec(b, c, a+b+c, n-1); else return a;}main() {return rec(1,1,1,7);}'
+
 echo OK

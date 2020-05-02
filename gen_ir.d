@@ -321,6 +321,23 @@ IR[] gen_stmt(Node* node)
         return res;
     }
 
+    if (node.type == NodeType.FOR)
+    {
+        long x = label++;
+        long y = label++;
+
+        res ~= IR(IRType.KILL, gen_expr(res, node.initialize), -1);
+        res ~= IR(IRType.LABEL, x, -1);
+        long r = gen_expr(res, node.cond);
+        res ~= IR(IRType.UNLESS, r, y);
+        res ~= IR(IRType.KILL, r, -1);
+        res ~= gen_stmt(node.fbody);
+        res ~= IR(IRType.KILL, gen_expr(res, node.inc), -1);
+        res ~= IR(IRType.JMP, x, -1);
+        res ~= IR(IRType.LABEL, y, -1);
+        return res;
+    }
+
     if (node.type == NodeType.RETURN)
     {
         long r = gen_expr(res, node.expr);

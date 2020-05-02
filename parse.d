@@ -16,6 +16,7 @@ enum NodeType
     DIV = '/',
     LESS_THAN = '<',
     IF, // "if"
+    FOR, // "for"
     LOGAND, // &&
     LOGOR, // ||
     RETURN, // Return statement
@@ -40,10 +41,13 @@ struct Node
     Node* then;
     Node* els;
 
-    /* Function definition
+    /*
      * Since D handles "body" as a reserved word,
      * here "fbody" is used as an alternative.
+     * "init" -> "initialize"
      */
+    Node* initialize;
+    Node* inc;
     Node* fbody;
 
     Node[] args;
@@ -247,6 +251,18 @@ Node* stmt(Token[] tokens)
         if (consume(tokens, TokenType.ELSE))
             node.els = stmt(tokens);
 
+        return node;
+    case TokenType.FOR:
+        pos++;
+        node.type = NodeType.FOR;
+        expect(tokens, TokenType.LEFT_PAREN);
+        node.initialize = assign(tokens);
+        expect(tokens, TokenType.SEMICOLONE);
+        node.cond = assign(tokens);
+        expect(tokens, TokenType.SEMICOLONE);
+        node.inc = assign(tokens);
+        expect(tokens, TokenType.RIGHT_PAREN);
+        node.fbody = stmt(tokens);
         return node;
     case TokenType.RETURN:
         pos++;

@@ -17,6 +17,7 @@ enum TokenType
     IDENT, // Identifier
     IF, // "if"
     ELSE, // "else"
+    FOR, // "for"
     LOGOR, // ||
     LOGAND, // &&
     ADD = '+',
@@ -63,14 +64,10 @@ Token[] tokenize(string s)
 {
     Token[] res;
     size_t i;
-    TokenType[string] keywords;
-    keywords["return"] = TokenType.RETURN;
-    keywords["if"] = TokenType.IF;
-    keywords["else"] = TokenType.ELSE;
-
-    TokenType[string] symbols;
-    symbols["&&"] = TokenType.LOGAND;
-    symbols["||"] = TokenType.LOGOR;
+    TokenType[string] symbols = [
+        "return" : TokenType.RETURN, "if" : TokenType.IF, "for" : TokenType.FOR,
+        "else" : TokenType.ELSE, "&&" : TokenType.LOGAND, "||" : TokenType.LOGOR
+    ];
 
     loop: while (i < s.length)
     {
@@ -91,7 +88,7 @@ Token[] tokenize(string s)
         }
         foreach (symbol, type; symbols)
         {
-            if (s[i .. (i + symbol.length)] == symbol)
+            if ((i + symbol.length) < s.length && s[i .. (i + symbol.length)] == symbol)
             {
                 Token t;
                 t.type = type;
@@ -121,21 +118,12 @@ Token[] tokenize(string s)
                 len++;
 
             string name = s[i .. i + len];
-            if (name in keywords)
-            {
-                Token t;
-                t.type = keywords[name];
-                t.input = name;
-                res ~= t;
-            }
-            else
-            {
-                Token t;
-                t.type = TokenType.IDENT;
-                t.name = name;
-                t.input = name;
-                res ~= t;
-            }
+
+            Token t;
+            t.type = TokenType.IDENT;
+            t.name = name;
+            t.input = name;
+            res ~= t;
 
             i += len;
             continue;
