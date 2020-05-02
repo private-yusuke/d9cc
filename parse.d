@@ -251,6 +251,9 @@ Node* stmt(Token[] tokens)
         node.name = t.name;
         pos++;
 
+        if (consume(tokens, TokenType.ASSIGN))
+            node.initialize = assign(tokens);
+
         expect(tokens, TokenType.SEMICOLONE);
         return node;
     case TokenType.IF:

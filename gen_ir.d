@@ -299,6 +299,18 @@ IR[] gen_stmt(Node* node)
     {
         stacksize += 8;
         vars[node.name] = stacksize;
+
+        if (!node.initialize)
+            return res;
+
+        long rhs = gen_expr(res, node.initialize);
+        long lhs = regno++;
+
+        res ~= IR(IRType.MOV, lhs, 0);
+        res ~= IR(IRType.SUB_IMM, lhs, stacksize);
+        res ~= IR(IRType.STORE, lhs, rhs);
+        res ~= IR(IRType.KILL, lhs, -1);
+        res ~= IR(IRType.KILL, rhs, -1);
         return res;
     }
     if (node.type == NodeType.IF)
