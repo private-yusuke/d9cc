@@ -14,6 +14,7 @@ enum NodeType
     SUB = '-',
     MUL = '*',
     DIV = '/',
+    LESS_THAN = '<',
     IF, // "if"
     LOGAND, // &&
     LOGOR, // ||
@@ -157,16 +158,38 @@ Node* add(Token[] tokens)
     }
 }
 
-Node* logand(Token[] tokens)
+Node* rel(Token[] tokens)
 {
     Node* lhs = add(tokens);
+    while (true)
+    {
+        Token t = tokens[pos];
+        if (t.type == TokenType.LESS_THAN)
+        {
+            pos++;
+            lhs = new_node(NodeType.LESS_THAN, lhs, add(tokens));
+            continue;
+        }
+        if (t.type == TokenType.GREATER_THAN)
+        {
+            pos++;
+            lhs = new_node(NodeType.LESS_THAN, add(tokens), lhs);
+            continue;
+        }
+        return lhs;
+    }
+}
+
+Node* logand(Token[] tokens)
+{
+    Node* lhs = rel(tokens);
     while (true)
     {
         Token t = tokens[pos];
         if (t.type != TokenType.LOGAND)
             return lhs;
         pos++;
-        lhs = new_node(NodeType.LOGAND, lhs, add(tokens));
+        lhs = new_node(NodeType.LOGAND, lhs, rel(tokens));
     }
 }
 

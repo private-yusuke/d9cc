@@ -15,6 +15,7 @@ enum IRType
     RETURN,
     CALL,
     LABEL,
+    LT,
     JMP,
     UNLESS,
     LOAD,
@@ -66,6 +67,7 @@ struct IR
         case IRType.MOV:
         case IRType.LOAD:
         case IRType.STORE:
+        case IRType.LT:
             return IRInfo.REG_REG;
         case IRType.IMM:
         case IRType.SUB_IMM:
@@ -186,6 +188,15 @@ long gen_lval(ref IR[] ins, Node* node)
     return r;
 }
 
+long gen_binop(ref IR[] ins, IRType ty, Node* lhs, Node* rhs)
+{
+    long r1 = gen_expr(ins, lhs);
+    long r2 = gen_expr(ins, rhs);
+    ins ~= IR(ty, r1, r2);
+    ins ~= IR(IRType.KILL, r2, -1);
+    return r1;
+}
+
 long gen_expr(ref IR[] ins, Node* node)
 {
     switch (node.type)
@@ -248,13 +259,18 @@ long gen_expr(ref IR[] ins, Node* node)
         ins ~= IR(IRType.KILL, rhs, -1);
 
         return lhs;
+    case NodeType.ADD:
+        return gen_binop(ins, IRType.ADD, node.lhs, node.rhs);
+    case NodeType.SUB:
+        return gen_binop(ins, IRType.SUB, node.lhs, node.rhs);
+    case NodeType.MUL:
+        return gen_binop(ins, IRType.MUL, node.lhs, node.rhs);
+    case NodeType.DIV:
+        return gen_binop(ins, IRType.DIV, node.lhs, node.rhs);
+    case NodeType.LESS_THAN:
+        return gen_binop(ins, IRType.LT, node.lhs, node.rhs);
     default:
-        assert("+-*/".any!(v => cast(IRType) v == cast(IRType) node.type));
-        long lhs = gen_expr(ins, node.lhs);
-        long rhs = gen_expr(ins, node.rhs);
-        ins ~= IR(cast(IRType) node.type, lhs, rhs);
-        ins ~= IR(IRType.KILL, rhs, -1);
-        return lhs;
+        assert(0, "unknown AST type");
     }
 }
 

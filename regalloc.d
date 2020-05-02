@@ -8,6 +8,9 @@ public:
 static immutable string[] regs = [
     "rbp", "r10", "r11", "rbx", "r12", "r13", "r14", "r15"
 ];
+static immutable string[] regs8 = [
+    "bpl", "r10b", "r11b", "bl", "r12b", "r13b", "r14b", "r15b"
+];
 
 void alloc_regs(Function[] fns)
 {

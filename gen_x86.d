@@ -78,6 +78,11 @@ void gen(Function fn)
         case IRType.LABEL:
             writefln(".L%d:", ir.lhs);
             break;
+        case IRType.LT:
+            writefln("  cmp %s, %s", regs[ir.lhs], regs[ir.rhs]);
+            writefln("  setl %s", regs8[ir.lhs]);
+            writefln("  movzb %s, %s", regs[ir.lhs], regs8[ir.lhs]);
+            break;
         case IRType.JMP:
             writefln("  jmp .L%d", ir.lhs);
             break;

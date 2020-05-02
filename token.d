@@ -31,6 +31,8 @@ enum TokenType
     RIGHT_PAREN = ')',
     LEFT_BRACES = '{',
     RIGHT_BRACES = '}',
+    LESS_THAN = '<',
+    GREATER_THAN = '>',
     EOF // End marker
 }
 
@@ -77,7 +79,7 @@ Token[] tokenize(string s)
             i++;
             continue;
         }
-        if ("+-*/;=(),{}".canFind(s[i]))
+        if ("+-*/;=(),{}<>".canFind(s[i]))
         {
             Token t;
             t.type = cast(TokenType) s[i];
