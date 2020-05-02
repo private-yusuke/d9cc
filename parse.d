@@ -270,6 +270,13 @@ Node* stmt(Token[] tokens)
         node.expr = assign(tokens);
         expect(tokens, ';');
         return node;
+    case TokenType.LEFT_BRACE:
+        pos++;
+        node.type = NodeType.COMP_STMT;
+        node.stmts = [];
+        while (!consume(tokens, TokenType.RIGHT_BRACE))
+            node.stmts ~= stmt(tokens);
+        return node;
     default:
         node.type = NodeType.EXPR_STMT;
         node.expr = assign(tokens);
@@ -284,7 +291,7 @@ Node* compound_stmt(Token[] tokens)
     node.type = NodeType.COMP_STMT;
     node.stmts = [];
 
-    while (!consume(tokens, TokenType.RIGHT_BRACES))
+    while (!consume(tokens, TokenType.RIGHT_BRACE))
     {
         node.stmts ~= stmt(tokens);
     }
@@ -315,7 +322,7 @@ Node* func(Token[] tokens)
         expect(tokens, TokenType.RIGHT_PAREN);
     }
 
-    expect(tokens, TokenType.LEFT_BRACES);
+    expect(tokens, TokenType.LEFT_BRACE);
     node.fbody = compound_stmt(tokens);
     return node;
 }

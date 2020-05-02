@@ -30,8 +30,8 @@ enum TokenType
     ASSIGN = '=',
     LEFT_PAREN = '(',
     RIGHT_PAREN = ')',
-    LEFT_BRACES = '{',
-    RIGHT_BRACES = '}',
+    LEFT_BRACE = '{',
+    RIGHT_BRACE = '}',
     LESS_THAN = '<',
     GREATER_THAN = '>',
     EOF // End marker
