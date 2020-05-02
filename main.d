@@ -53,6 +53,15 @@ int main(string[] args)
         gen_x86(fns);
     }
     catch (QuitException e)
-        return e.return_code;
+    {
+        debug
+        {
+            throw e;
+        }
+        else
+        {
+            return e.return_code;
+        }
+    }
     return 0;
 }

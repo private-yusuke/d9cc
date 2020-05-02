@@ -342,7 +342,7 @@ IR[] gen_stmt(Node* node)
         long x = label++;
         long y = label++;
 
-        res ~= IR(IRType.KILL, gen_expr(res, node.initialize), -1);
+        res ~= gen_stmt(node.initialize);
         res ~= IR(IRType.LABEL, x, -1);
         long r = gen_expr(res, node.cond);
         res ~= IR(IRType.UNLESS, r, y);

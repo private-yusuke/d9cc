@@ -82,6 +82,11 @@ bool consume(Token[] tokens, TokenType type)
     return true;
 }
 
+bool is_typename(Token t)
+{
+    return t.type == TokenType.INT;
+}
+
 Node* new_node(NodeType op, Node* lhs, Node* rhs)
 {
     Node* node = new Node;
@@ -233,6 +238,35 @@ Node* assign(Token[] tokens)
     return lhs;
 }
 
+Node* decl(Token[] tokens)
+{
+    Node* node = new Node;
+    pos++;
+    node.type = NodeType.VARDEF;
+
+    Token t = tokens[pos];
+    if (t.type != TokenType.IDENT)
+        error("variable name expected, but got %s", t.input);
+
+    node.name = t.name;
+    pos++;
+
+    if (consume(tokens, TokenType.ASSIGN))
+        node.initialize = assign(tokens);
+
+    expect(tokens, TokenType.SEMICOLONE);
+    return node;
+}
+
+Node* expr_stmt(Token[] tokens)
+{
+    Node* node = new Node;
+    node.type = NodeType.EXPR_STMT;
+    node.expr = assign(tokens);
+    expect(tokens, TokenType.SEMICOLONE);
+    return node;
+}
+
 Node* stmt(Token[] tokens)
 {
     Node* node = new Node;
@@ -241,21 +275,7 @@ Node* stmt(Token[] tokens)
     switch (t.type)
     {
     case TokenType.INT:
-        pos++;
-        node.type = NodeType.VARDEF;
-
-        t = tokens[pos];
-        if (t.type != TokenType.IDENT)
-            error("variable name expected, but got %s", t.input);
-
-        node.name = t.name;
-        pos++;
-
-        if (consume(tokens, TokenType.ASSIGN))
-            node.initialize = assign(tokens);
-
-        expect(tokens, TokenType.SEMICOLONE);
-        return node;
+        return decl(tokens);
     case TokenType.IF:
         pos++;
         node.type = NodeType.IF;
@@ -273,8 +293,11 @@ Node* stmt(Token[] tokens)
         pos++;
         node.type = NodeType.FOR;
         expect(tokens, TokenType.LEFT_PAREN);
-        node.initialize = assign(tokens);
-        expect(tokens, TokenType.SEMICOLONE);
+        if (is_typename(tokens[pos]))
+            node.initialize = decl(tokens);
+        else
+            node.initialize = expr_stmt(tokens);
+
         node.cond = assign(tokens);
         expect(tokens, TokenType.SEMICOLONE);
         node.inc = assign(tokens);
@@ -295,13 +318,11 @@ Node* stmt(Token[] tokens)
             node.stmts ~= stmt(tokens);
         return node;
     default:
-        node.type = NodeType.EXPR_STMT;
-        node.expr = assign(tokens);
-        expect(tokens, ';');
-        return node;
+        return expr_stmt(tokens);
     }
 }
 
+// multiple statements
 Node* compound_stmt(Token[] tokens)
 {
     Node* node = new Node;
