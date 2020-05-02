@@ -9,6 +9,7 @@ enum NodeType
 {
     NUM, // Number literal
     IDENT, // Identifier
+    VARDEF, // Variable definition
     ASSIGN = '=',
     ADD = '+',
     SUB = '-',
@@ -239,6 +240,19 @@ Node* stmt(Token[] tokens)
 
     switch (t.type)
     {
+    case TokenType.INT:
+        pos++;
+        node.type = NodeType.VARDEF;
+
+        t = tokens[pos];
+        if (t.type != TokenType.IDENT)
+            error("variable name expected, but got %s", t.input);
+
+        node.name = t.name;
+        pos++;
+
+        expect(tokens, TokenType.SEMICOLONE);
+        return node;
     case TokenType.IF:
         pos++;
         node.type = NodeType.IF;
@@ -308,6 +322,11 @@ Node* func(Token[] tokens)
     node.args = [];
 
     Token t = tokens[pos];
+    if (t.type != TokenType.INT)
+        error("function return type expected, but got %s", t.input);
+    pos++;
+
+    t = tokens[pos];
     if (t.type != TokenType.IDENT)
         error("function name expected, but got %s", t.input);
     node.name = t.name;

@@ -15,6 +15,7 @@ enum TokenType
 {
     NUM, // Number literal
     IDENT, // Identifier
+    INT, // "int"
     IF, // "if"
     ELSE, // "else"
     FOR, // "for"
@@ -66,7 +67,8 @@ Token[] tokenize(string s)
     size_t i;
     TokenType[string] symbols = [
         "return" : TokenType.RETURN, "if" : TokenType.IF, "for" : TokenType.FOR,
-        "else" : TokenType.ELSE, "&&" : TokenType.LOGAND, "||" : TokenType.LOGOR
+        "else" : TokenType.ELSE, "&&" : TokenType.LOGAND,
+        "||" : TokenType.LOGOR, "int" : TokenType.INT
     ];
 
     loop: while (i < s.length)

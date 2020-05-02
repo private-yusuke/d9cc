@@ -177,10 +177,8 @@ long gen_lval(ref IR[] ins, Node* node)
         error("not an lvalue");
 
     if (node.name !in vars)
-    {
-        stacksize += 8;
-        vars[node.name] = stacksize;
-    }
+        error("undefined variable: %s", node.name);
+
     long r = regno++;
     long off = vars[node.name];
     ins ~= IR(IRType.MOV, r, 0);
@@ -297,6 +295,12 @@ IR[] gen_stmt(Node* node)
 {
     IR[] res;
 
+    if (node.type == NodeType.VARDEF)
+    {
+        stacksize += 8;
+        vars[node.name] = stacksize;
+        return res;
+    }
     if (node.type == NodeType.IF)
     {
         long r = gen_expr(res, node.cond);
