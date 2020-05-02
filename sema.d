@@ -1,6 +1,6 @@
 module sema;
 
-import parse : Node, NodeType;
+import parse : Node, NodeType, Type, TypeName;
 import util;
 
 public:
@@ -8,7 +8,7 @@ void sema(ref Node[] nodes)
 {
     foreach (node; nodes)
     {
-        assert(node.type == NodeType.FUNC);
+        assert(node.op == NodeType.FUNC);
 
         vars.clear();
         stacksize = 0;
@@ -19,25 +19,37 @@ void sema(ref Node[] nodes)
 
 private:
 
-long[string] vars;
+struct Var
+{
+    Type type;
+    size_t offset;
+}
+
+Var[string] vars;
 long stacksize;
 
 void walk(Node* node)
 {
-    with (NodeType) switch (node.type)
+    with (NodeType) switch (node.op)
     {
     case NUM:
         return;
     case IDENT:
         if (node.name !in vars)
             error("undefined variable: %s", node.name);
-        node.type = NodeType.LVAR;
-        node.offset = vars[node.name];
+        node.op = NodeType.LVAR;
+        node.type = vars[node.name].type;
+        node.offset = vars[node.name].offset;
         return;
     case VARDEF:
         stacksize += 8;
-        vars[node.name] = stacksize;
         node.offset = stacksize;
+
+        Var var;
+        var.type = node.type;
+        var.offset = stacksize;
+        vars[node.name] = var;
+
         if (node.initialize)
             walk(node.initialize);
         return;
@@ -63,9 +75,12 @@ void walk(Node* node)
     case LOGOR:
         walk(node.lhs);
         walk(node.rhs);
+        node.type = node.lhs.type;
         return;
+    case DEREF:
     case RETURN:
         walk(node.expr);
+        node.type = Type(TypeName.INT);
         return;
     case CALL:
         foreach (ref v; node.args)

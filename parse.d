@@ -13,6 +13,7 @@ enum NodeType
     LVAR, // Variable reference
     IF, // "if"
     FOR, // "for"
+    DEREF, // pointer dereference ("*")
     LOGAND, // &&
     LOGOR, // ||
     RETURN, // Return statement
@@ -28,9 +29,23 @@ enum NodeType
     LESS_THAN = '<',
 }
 
+enum TypeName
+{
+    INT,
+    PTR
+}
+
+struct Type
+{
+    TypeName type;
+    Type* ptr_of;
+}
+
 struct Node
 {
-    NodeType type; // Node type
+    NodeType op; // Node type
+    Type type;
+
     Node* lhs = null;
     Node* rhs = null;
     int val; // Number literal
@@ -97,7 +112,7 @@ bool is_typename(Token t)
 Node* new_node(NodeType op, Node* lhs, Node* rhs)
 {
     Node* node = new Node;
-    node.type = op;
+    node.op = op;
     node.lhs = lhs;
     node.rhs = rhs;
     return node;
@@ -118,7 +133,7 @@ Node* term(Token[] tokens)
 
     if (t.type == TokenType.NUM)
     {
-        node.type = NodeType.NUM;
+        node.op = NodeType.NUM;
         node.name = t.name;
         node.val = t.val;
         return node;
@@ -130,11 +145,11 @@ Node* term(Token[] tokens)
 
         if (!consume(tokens, TokenType.LEFT_PAREN))
         {
-            node.type = NodeType.IDENT;
+            node.op = NodeType.IDENT;
             return node;
         }
 
-        node.type = NodeType.CALL;
+        node.op = NodeType.CALL;
         node.args = [];
         if (consume(tokens, TokenType.RIGHT_PAREN))
             return node;
@@ -149,16 +164,28 @@ Node* term(Token[] tokens)
     assert(0);
 }
 
+Node* unary(Token[] tokens)
+{
+    if (consume(tokens, TokenType.ASTERISK))
+    {
+        Node* node = new Node;
+        node.op = NodeType.DEREF;
+        node.expr = mul(tokens);
+        return node;
+    }
+    return term(tokens);
+}
+
 Node* mul(Token[] tokens)
 {
-    Node* lhs = term(tokens);
+    Node* lhs = unary(tokens);
     while (true)
     {
         Token t = tokens[pos];
-        if (t.type != '*' && t.type != '/')
+        if (t.type != TokenType.ASTERISK && t.type != TokenType.DIV)
             return lhs;
         pos++;
-        lhs = new_node(cast(NodeType) t.type, lhs, term(tokens));
+        lhs = new_node(cast(NodeType) t.type, lhs, unary(tokens));
     }
 }
 
@@ -237,6 +264,14 @@ Node* expr(Token[] tokens)
     }
 }
 
+Type* ptr_of(Type* base)
+{
+    Type* ty = new Type;
+    ty.type = TypeName.PTR;
+    ty.ptr_of = base;
+    return ty;
+}
+
 Node* assign(Token[] tokens)
 {
     Node* lhs = logor(tokens);
@@ -245,11 +280,25 @@ Node* assign(Token[] tokens)
     return lhs;
 }
 
+Type type(Token[] tokens)
+{
+    Token t = tokens[pos];
+    if (t.type != TokenType.INT)
+        error("typename expected, but got %s", t.input);
+    pos++;
+
+    Type ty;
+    ty.type = TypeName.INT;
+    while (consume(tokens, TokenType.ASTERISK))
+        ty = Type(TypeName.PTR, &ty);
+    return ty;
+}
+
 Node* decl(Token[] tokens)
 {
     Node* node = new Node;
-    pos++;
-    node.type = NodeType.VARDEF;
+    node.type = type(tokens);
+    node.op = NodeType.VARDEF;
 
     Token t = tokens[pos];
     if (t.type != TokenType.IDENT)
@@ -268,8 +317,8 @@ Node* decl(Token[] tokens)
 Node* param(Token[] tokens)
 {
     Node* node = new Node;
-    node.type = NodeType.VARDEF;
-    pos++;
+    node.op = NodeType.VARDEF;
+    node.type = type(tokens);
 
     Token t = tokens[pos];
     if (t.type != TokenType.IDENT)
@@ -282,7 +331,7 @@ Node* param(Token[] tokens)
 Node* expr_stmt(Token[] tokens)
 {
     Node* node = new Node;
-    node.type = NodeType.EXPR_STMT;
+    node.op = NodeType.EXPR_STMT;
     node.expr = assign(tokens);
     expect(tokens, TokenType.SEMICOLONE);
     return node;
@@ -299,7 +348,7 @@ Node* stmt(Token[] tokens)
         return decl(tokens);
     case TokenType.IF:
         pos++;
-        node.type = NodeType.IF;
+        node.op = NodeType.IF;
         expect(tokens, '(');
         node.cond = assign(tokens);
         expect(tokens, ')');
@@ -312,7 +361,7 @@ Node* stmt(Token[] tokens)
         return node;
     case TokenType.FOR:
         pos++;
-        node.type = NodeType.FOR;
+        node.op = NodeType.FOR;
         expect(tokens, TokenType.LEFT_PAREN);
         if (is_typename(tokens[pos]))
             node.initialize = decl(tokens);
@@ -327,13 +376,13 @@ Node* stmt(Token[] tokens)
         return node;
     case TokenType.RETURN:
         pos++;
-        node.type = NodeType.RETURN;
+        node.op = NodeType.RETURN;
         node.expr = assign(tokens);
         expect(tokens, ';');
         return node;
     case TokenType.LEFT_BRACE:
         pos++;
-        node.type = NodeType.COMP_STMT;
+        node.op = NodeType.COMP_STMT;
         node.stmts = [];
         while (!consume(tokens, TokenType.RIGHT_BRACE))
             node.stmts ~= stmt(tokens);
@@ -347,7 +396,7 @@ Node* stmt(Token[] tokens)
 Node* compound_stmt(Token[] tokens)
 {
     Node* node = new Node;
-    node.type = NodeType.COMP_STMT;
+    node.op = NodeType.COMP_STMT;
     node.stmts = [];
 
     while (!consume(tokens, TokenType.RIGHT_BRACE))
@@ -363,7 +412,7 @@ Node* compound_stmt(Token[] tokens)
 Node* func(Token[] tokens)
 {
     Node* node = new Node;
-    node.type = NodeType.FUNC;
+    node.op = NodeType.FUNC;
     node.args = [];
 
     Token t = tokens[pos];

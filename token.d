@@ -23,7 +23,7 @@ enum TokenType
     LOGAND, // &&
     ADD = '+',
     SUB = '-',
-    MUL = '*',
+    ASTERISK = '*',
     DIV = '/',
     RETURN, // "return"
     COMMA = ',',

@@ -135,7 +135,7 @@ Function[] gen_ir(Node[] nodes)
     Function[] res;
     foreach (n; nodes)
     {
-        assert(n.type == NodeType.FUNC);
+        assert(n.op == NodeType.FUNC);
 
         IR[] code;
         regno = 1; // 0 for the base register
@@ -170,8 +170,8 @@ long label;
 
 long gen_lval(ref IR[] ins, Node* node)
 {
-    if (node.type != NodeType.LVAR)
-        error("not an lvalue: %s (%s)", node.type, node.name);
+    if (node.op != NodeType.LVAR)
+        error("not an lvalue: %s (%s)", node.op, node.name);
 
     long r = regno++;
     ins ~= IR(IRType.MOV, r, 0);
@@ -190,7 +190,7 @@ long gen_binop(ref IR[] ins, IRType ty, Node* lhs, Node* rhs)
 
 long gen_expr(ref IR[] ins, Node* node)
 {
-    switch (node.type)
+    switch (node.op)
     {
     case NodeType.NUM:
         long r = regno++;
@@ -243,6 +243,10 @@ long gen_expr(ref IR[] ins, Node* node)
         foreach (v; ir.args)
             ins ~= IR(IRType.KILL, v, -1);
         return r;
+    case NodeType.DEREF:
+        long r = gen_expr(ins, node.expr);
+        ins ~= IR(IRType.LOAD, r, r);
+        return r;
     case NodeType.ASSIGN:
         long rhs = gen_expr(ins, node.rhs);
         long lhs = gen_lval(ins, node.lhs);
@@ -261,7 +265,7 @@ long gen_expr(ref IR[] ins, Node* node)
     case NodeType.LESS_THAN:
         return gen_binop(ins, IRType.LT, node.lhs, node.rhs);
     default:
-        error("unknown AST type: %s", node.type);
+        error("unknown AST type: %s", node.op);
         assert(0);
     }
 }
@@ -270,7 +274,7 @@ IR[] gen_stmt(Node* node)
 {
     IR[] res;
 
-    if (node.type == NodeType.VARDEF)
+    if (node.op == NodeType.VARDEF)
     {
 
         if (!node.initialize)
@@ -287,7 +291,7 @@ IR[] gen_stmt(Node* node)
         return res;
     }
 
-    if (node.type == NodeType.IF)
+    if (node.op == NodeType.IF)
     {
         if (node.els)
         {
@@ -318,7 +322,7 @@ IR[] gen_stmt(Node* node)
         return res;
     }
 
-    if (node.type == NodeType.FOR)
+    if (node.op == NodeType.FOR)
     {
         long x = label++;
         long y = label++;
@@ -335,7 +339,7 @@ IR[] gen_stmt(Node* node)
         return res;
     }
 
-    if (node.type == NodeType.RETURN)
+    if (node.op == NodeType.RETURN)
     {
         long r = gen_expr(res, node.expr);
         res ~= IR(IRType.RETURN, r, -1);
@@ -343,14 +347,14 @@ IR[] gen_stmt(Node* node)
         return res;
     }
 
-    if (node.type == NodeType.EXPR_STMT)
+    if (node.op == NodeType.EXPR_STMT)
     {
         long r = gen_expr(res, node.expr);
         res ~= IR(IRType.KILL, r, -1);
         return res;
     }
 
-    if (node.type == NodeType.COMP_STMT)
+    if (node.op == NodeType.COMP_STMT)
     {
         foreach (stmt; node.stmts)
         {
@@ -359,6 +363,6 @@ IR[] gen_stmt(Node* node)
         return res;
     }
 
-    error("unknown code: %s", node.type);
+    error("unknown code: %s", node.op);
     assert(0);
 }
