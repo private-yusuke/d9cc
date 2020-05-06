@@ -2,6 +2,7 @@ module sema;
 
 import parse : Node, NodeType, Type, TypeName;
 import util;
+import std.algorithm : swap;
 
 public:
 void sema(ref Node[] nodes)
@@ -15,6 +16,14 @@ void sema(ref Node[] nodes)
         walk(&node);
         node.stacksize = stacksize;
     }
+}
+
+long size_of(Type ty)
+{
+    if (ty.type == TypeName.INT)
+        return 4;
+    assert(ty.type == TypeName.PTR);
+    return 8;
 }
 
 private:
@@ -67,6 +76,17 @@ void walk(Node* node)
         return;
     case ADD:
     case SUB:
+        walk(node.lhs);
+        walk(node.rhs);
+
+        if (node.rhs.type.type == TypeName.PTR)
+            swap(node.lhs, node.rhs);
+
+        if (node.rhs.type.type == TypeName.PTR)
+            error("'pointer %s pointer' is not defined", node.op);
+
+        node.type = node.lhs.type;
+        return;
     case MUL:
     case DIV:
     case ASSIGN:
@@ -78,6 +98,11 @@ void walk(Node* node)
         node.type = node.lhs.type;
         return;
     case DEREF:
+        walk(node.expr);
+        if (node.expr.type.type != TypeName.PTR)
+            error("operand must be a pointer");
+        node.type = *(node.expr.type.ptr_of);
+        return;
     case RETURN:
         walk(node.expr);
         node.type = Type(TypeName.INT);

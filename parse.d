@@ -282,16 +282,20 @@ Node* assign(Token[] tokens)
 
 Type type(Token[] tokens)
 {
-    Token t = tokens[pos];
-    if (t.type != TokenType.INT)
-        error("typename expected, but got %s", t.input);
+    if (tokens[pos].type != TokenType.INT)
+        error("typename expected, but got %s", tokens[pos].input);
     pos++;
 
-    Type ty;
+    Type* ty = new Type;
     ty.type = TypeName.INT;
     while (consume(tokens, TokenType.ASTERISK))
-        ty = Type(TypeName.PTR, &ty);
-    return ty;
+    {
+        Type* t = new Type;
+        t.type = TypeName.PTR;
+        t.ptr_of = ty;
+        ty = t;
+    }
+    return *ty;
 }
 
 Node* decl(Token[] tokens)

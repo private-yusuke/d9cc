@@ -3,6 +3,7 @@ module gen_ir;
 import std.algorithm : any;
 import std.stdio : stderr;
 import parse, util;
+import sema : size_of;
 
 // Intermediate representation
 
@@ -255,9 +256,23 @@ long gen_expr(ref IR[] ins, Node* node)
 
         return lhs;
     case NodeType.ADD:
-        return gen_binop(ins, IRType.ADD, node.lhs, node.rhs);
     case NodeType.SUB:
-        return gen_binop(ins, IRType.SUB, node.lhs, node.rhs);
+        IRType insn = (node.op == NodeType.ADD)
+            ? IRType.ADD : IRType.SUB;
+
+        if (node.lhs.type.type != TypeName.PTR)
+            return gen_binop(ins, insn, node.lhs, node.rhs);
+
+        long rhs = gen_expr(ins, node.rhs);
+        long r = regno++;
+        ins ~= IR(IRType.IMM, r, size_of(*(node.lhs.type.ptr_of)));
+        ins ~= IR(IRType.MUL, rhs, r);
+        ins ~= IR(IRType.KILL, r);
+
+        long lhs = gen_expr(ins, node.lhs);
+        ins ~= IR(insn, lhs, rhs);
+        ins ~= IR(IRType.KILL, rhs);
+        return lhs;
     case NodeType.MUL:
         return gen_binop(ins, IRType.MUL, node.lhs, node.rhs);
     case NodeType.DIV:

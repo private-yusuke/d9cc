@@ -16,13 +16,28 @@ try() {
     fi
 }
 
-# tmp-test.o
 cat <<EOF | gcc -xc -c -o tmp-test.o -
 int plus(int x, int y) { return x + y; }
-int *alloc(int x) {
-  static int arr[1];
+int *alloc1(int x, int y) {
+  static int arr[2];
   arr[0] = x;
+  arr[1] = y;
   return arr;
+}
+int *alloc2(int x, int y) {
+  static int arr[2];
+  arr[0] = x;
+  arr[1] = y;
+  return arr + 1;
+}
+int **alloc_ptr_ptr(int x) {
+  static int **p;
+  static int *q;
+  static int r;
+  r = x;
+  q = &r;
+  p = &q;
+  return p;
 }
 EOF
 
@@ -78,6 +93,8 @@ try 7 'int trib(int n){int a=0; int b=0; int c=1; int d=0; for(int i=0;i<n-1;i=i
 
 try 89 'int main() { int i=1; int j=1; for (int k=0; k<10; k=k+1) { int m=i+j; i=j; j=m; } return i;}'
 
-try 42 'int main() { int *p = alloc(42); return *p; }'
+try 8 'int main() { int *p = alloc1(3, 5); return *p + *(p + 1); }'
+try 9 'int main() { int *p = alloc2(2, 7); return *p + *(p - 1); }'
+try 2 'int main() { int **p = alloc_ptr_ptr(2); return **p; }'
 
 echo OK
